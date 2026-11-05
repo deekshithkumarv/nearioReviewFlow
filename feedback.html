@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Neario Feedback</title>
+<meta name="description" content="Leave feedback for a business.">
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: single centred column, one question per screen, thumb-reachable actions pinned to the bottom of each card. */
+:root{
+  --bg:#f7f3ea;--surface:#fffdf8;--surface-2:#f1ece0;--line:#e6dfcf;--fg:#17261d;--muted:#65726a;
+  --primary:#1f5a36;--on-primary:#fff;--accent-text:#1f5a36;--sage:#dfe9d3;--orange:#ee8a1b;--blue:#2f6bdc;--red:#c8442f;
+  --shadow:0 1px 2px rgba(35,50,30,.06),0 10px 30px rgba(35,50,30,.08);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans Devanagari','Noto Sans Kannada',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1612;--surface:#17201a;--surface-2:#1e2a22;--line:#2a372e;--fg:#eaf0e6;--muted:#9aa99f;
+  --primary:#3f9a60;--accent-text:#8fd0a0;--sage:#223a2a;--orange:#f5a243;--blue:#6e9bf0;--red:#ee7a66;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.3);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1612;--surface:#17201a;--surface-2:#1e2a22;--line:#2a372e;--fg:#eaf0e6;--muted:#9aa99f;
+  --primary:#3f9a60;--accent-text:#8fd0a0;--sage:#223a2a;--orange:#f5a243;--blue:#6e9bf0;--red:#ee7a66;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.3);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:10px}
+.wrap{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.top{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;border-radius:14px;background:var(--sage);color:var(--accent-text);display:grid;place-items:center;font-weight:800;font-size:20px;flex:none}
+.top b{display:block;font-size:17px;letter-spacing:-.2px}.top span{font-size:13px;color:var(--muted)}
+.lang{margin-left:auto;display:flex;gap:4px;background:var(--surface-2);border-radius:999px;padding:3px}
+.lang button{border:0;background:none;border-radius:999px;padding:6px 10px;font-size:13px;font-weight:600;color:var(--muted)}
+.lang button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+.dots{display:flex;gap:6px}.dots i{flex:1;height:5px;border-radius:9px;background:var(--line)}.dots i.on{background:var(--primary)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);padding:22px 20px;display:flex;flex-direction:column;gap:18px}
+h1{margin:0;font-size:26px;letter-spacing:-.6px;line-height:1.15;text-wrap:balance}
+p{margin:0}.mut{color:var(--muted);font-size:14px}
+.stars{display:flex;justify-content:space-between;gap:4px}
+.stars button{flex:1;aspect-ratio:1;max-width:76px;border:0;background:none;padding:0;font-size:clamp(40px,12vw,54px);line-height:1;color:var(--line);transition:transform .12s}
+.stars button[aria-checked="true"],.stars button.on{color:var(--orange)}
+.stars button:active{transform:scale(.92)}
+.rlabel{text-align:center;font-weight:700;font-size:18px;min-height:27px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:10px 16px;font-weight:600;font-size:15px;min-height:44px}
+.chip[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+label.f{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:14px}
+textarea,input[type=text],input[type=tel]{width:100%;background:var(--surface-2);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-weight:400;font-size:16px}
+textarea{min-height:110px;resize:vertical}
+.btn{border:0;border-radius:16px;padding:16px 20px;font-weight:700;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;text-decoration:none;text-align:center}
+.btn.p{background:var(--primary);color:var(--on-primary)}.btn.s{background:var(--surface);border:1.5px solid var(--line);color:var(--fg)}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px}.row .btn{flex:1}
+.g{font-weight:800;color:var(--blue);background:#fff;border-radius:50%;width:26px;height:26px;display:grid;place-items:center;font-size:15px}
+.done{align-items:center;text-align:center}
+.tick{width:68px;height:68px;border-radius:50%;background:var(--sage);color:var(--accent-text);display:grid;place-items:center;font-size:34px}
+.note{background:var(--surface-2);border-radius:14px;padding:12px 14px;font-size:13.5px;color:var(--muted);text-align:left;width:100%}
+.note b{color:var(--fg)}
+.quote{background:var(--surface-2);border-radius:14px;padding:12px 14px;font-size:15px;text-align:left;width:100%;overflow-wrap:anywhere}
+.ck{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--fg)}.ck input{width:20px;height:20px;margin-top:2px;accent-color:var(--primary);flex:none}
+.err{color:var(--red);font-weight:600;font-size:14px}
+.dchip{background:var(--sage);color:var(--accent-text);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;align-self:flex-start}
+a{color:var(--accent-text)}
+.foot{text-align:center;font-size:12.5px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:600;font-size:14px;width:min(420px,calc(100% - 32px));text-align:center}
+.toast[hidden]{display:none}
+.demo{font-size:12px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;padding:8px 12px}
+[hidden]{display:none!important}
+</style>
+
+<div class="wrap">
+  <div class="demo" role="note">Prototype: this is the page a customer sees after scanning the QR code or tapping a TapReview device. Nothing is sent anywhere.</div>
+  <div class="dchip" id="dchip" hidden>Order #1042 · Table 5 · Neario Dineout</div>
+  <header class="top">
+    <div class="logo" aria-hidden="true">GH</div>
+    <div><b id="biz">The Green House</b><span id="loc">Indiranagar, Bengaluru</span></div>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-l="en" aria-pressed="true">EN</button><button data-l="hi" aria-pressed="false">हिं</button><button data-l="kn" aria-pressed="false">ಕನ್ನಡ</button>
+    </div>
+  </header>
+  <div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+
+  <section class="card" id="s1" aria-labelledby="h1a">
+    <h1 id="h1a" data-t="q1"></h1>
+    <div class="stars" role="radiogroup" aria-labelledby="h1a" id="stars"></div>
+    <div class="rlabel" id="rl" aria-live="polite"></div>
+    <button class="btn p" id="n1" disabled data-t="next"></button>
+  </section>
+
+  <section class="card" id="s2" hidden aria-labelledby="h2a">
+    <h1 id="h2a" data-t="q2"></h1>
+    <div>
+      <p class="mut" style="margin-bottom:8px" data-t="svc"></p>
+      <div class="chips" id="svcs" role="group"></div>
+    </div>
+    <div>
+      <p class="mut" style="margin-bottom:8px" data-t="tags"></p>
+      <div class="chips" id="tags" role="group"></div>
+    </div>
+    <label class="f"><span data-t="txt"></span><textarea id="txt" maxlength="500"></textarea></label>
+    <label class="f" id="contact"><span data-t="contact"></span><input id="ph" type="tel" inputmode="tel" autocomplete="tel" placeholder="+91"></label>
+    <label class="ck" id="ckwrap" hidden><input type="checkbox" id="ck"><span data-t="consent"></span></label>
+    <p class="err" id="cerr" role="alert" hidden data-t="consentErr"></p>
+    <div class="row"><button class="btn s" id="b2" data-t="back"></button><button class="btn p" id="n2" data-t="send"></button></div>
+    <p class="mut"><span data-t="privacy"></span> <span data-t="del"></span> <a href="privacy.html" data-t="privLink"></a></p>
+  </section>
+
+  <section class="card done" id="s3" hidden aria-labelledby="h3a">
+    <div class="tick" aria-hidden="true">✓</div>
+    <h1 id="h3a" data-t="thanks"></h1>
+    <p class="mut" data-t="saved"></p>
+    <div class="quote" id="q" hidden></div>
+    <div class="note"><b data-t="gTitle"></b><br><span data-t="gBody"></span></div>
+    <a class="btn p" id="gbtn" href="#google-review"><span class="g" aria-hidden="true">G</span><span data-t="gBtn"></span></a>
+    <button class="btn s" id="copy" hidden data-t="copy"></button>
+    <button class="btn s" id="again" data-t="done"></button>
+  </section>
+  <p class="foot" data-t="foot"></p>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var L={
+en:{q1:'How was your visit?',consent:'I agree that the business may contact me on this number about my feedback.',consentErr:'Tick the box to let the business contact you, or clear the phone number.',del:'To delete your feedback or number, ask the business or read our Privacy page.',privLink:'Privacy',next:'Next',q2:'Tell us a little more',svc:'Which service did you have?',tags:'What stood out? (optional)',txt:'Your feedback (optional)',contact:'Phone number (optional, only if you want us to get in touch)',back:'Back',send:'Send feedback',privacy:'Your feedback goes to the business owner. Your phone number is only used if you ask us to contact you.',thanks:'Thank you!',saved:'Your feedback was saved and sent to The Green House.',gTitle:'Want to share it on Google too?',gBody:'It is your choice. Anyone can leave a public Google review, whatever their rating. You write and post it yourself.',gBtn:'Write a Google review',copy:'Copy my feedback',done:'Done',foot:'Powered by Neario ReviewFlow',copied:'Copied. Paste it into your Google review.',demoG:'In the live version this opens the business’s Google review form.',pick:'Please pick a rating',
+ r:['Poor','Fair','Good','Very good','Excellent'],S:['Haircut','Facial','Hair Spa','Other'],T:['Friendly staff','Clean space','Waiting time','Value for money','Result quality','Booking was easy']},
+hi:{q1:'आपका अनुभव कैसा रहा?',consent:'मैं सहमत हूँ कि मेरी राय के बारे में यह व्यवसाय मुझे इस नंबर पर संपर्क कर सकता है।',consentErr:'व्यवसाय को संपर्क की अनुमति देने के लिए बॉक्स चुनें, या फ़ोन नंबर हटा दें।',del:'अपनी राय या नंबर हटवाने के लिए बिज़नेस से कहें या हमारा प्राइवेसी पेज देखें।',privLink:'प्राइवेसी',next:'आगे',q2:'थोड़ा और बताइए',svc:'आपने कौन सी सेवा ली?',tags:'क्या खास लगा? (वैकल्पिक)',txt:'आपकी राय (वैकल्पिक)',contact:'फ़ोन नंबर (वैकल्पिक, केवल तभी जब आप चाहें कि हम संपर्क करें)',back:'पीछे',send:'राय भेजें',privacy:'आपकी राय बिज़नेस मालिक तक जाती है। फ़ोन नंबर केवल तभी इस्तेमाल होगा जब आप संपर्क के लिए कहें।',thanks:'धन्यवाद!',saved:'आपकी राय The Green House को भेज दी गई है।',gTitle:'क्या आप इसे Google पर भी साझा करना चाहेंगे?',gBody:'यह आपकी मर्ज़ी है। रेटिंग चाहे जो हो, कोई भी Google पर सार्वजनिक रिव्यू लिख सकता है। आप खुद लिखते और पोस्ट करते हैं।',gBtn:'Google रिव्यू लिखें',copy:'मेरी राय कॉपी करें',done:'पूरा हुआ',foot:'Neario ReviewFlow द्वारा',copied:'कॉपी हो गया। इसे अपने Google रिव्यू में चिपकाएँ।',demoG:'असली वर्ज़न में यह बिज़नेस का Google रिव्यू फ़ॉर्म खोलेगा।',pick:'कृपया रेटिंग चुनें',
+ r:['खराब','ठीक-ठाक','अच्छा','बहुत अच्छा','शानदार'],S:['हेयरकट','फ़ेशियल','हेयर स्पा','अन्य'],T:['मिलनसार स्टाफ','साफ़-सफ़ाई','इंतज़ार का समय','पैसे की कीमत','काम की क्वालिटी','बुकिंग आसान थी']},
+kn:{q1:'ನಿಮ್ಮ ಭೇಟಿ ಹೇಗಿತ್ತು?',consent:'ನನ್ನ ಅಭಿಪ್ರಾಯದ ಬಗ್ಗೆ ಈ ವ್ಯಾಪಾರವು ಈ ಸಂಖ್ಯೆಯಲ್ಲಿ ನನ್ನನ್ನು ಸಂಪರ್ಕಿಸಬಹುದು ಎಂದು ನಾನು ಒಪ್ಪುತ್ತೇನೆ.',consentErr:'ವ್ಯಾಪಾರ ಸಂಪರ್ಕಿಸಲು ಬಾಕ್ಸ್ ಆಯ್ಕೆ ಮಾಡಿ, ಅಥವಾ ಫೋನ್ ಸಂಖ್ಯೆ ತೆಗೆಯಿರಿ.',del:'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಅಥವಾ ಸಂಖ್ಯೆ ಅಳಿಸಲು ವ್ಯಾಪಾರವನ್ನು ಕೇಳಿ ಅಥವಾ ನಮ್ಮ ಗೌಪ್ಯತಾ ಪುಟ ನೋಡಿ.',privLink:'ಗೌಪ್ಯತೆ',next:'ಮುಂದೆ',q2:'ಸ್ವಲ್ಪ ಹೆಚ್ಚು ಹೇಳಿ',svc:'ನೀವು ಯಾವ ಸೇವೆ ಪಡೆದಿರಿ?',tags:'ಏನು ವಿಶೇಷವೆನಿಸಿತು? (ಐಚ್ಛಿಕ)',txt:'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ (ಐಚ್ಛಿಕ)',contact:'ಫೋನ್ ಸಂಖ್ಯೆ (ಐಚ್ಛಿಕ, ನಾವು ಸಂಪರ್ಕಿಸಬೇಕೆಂದರೆ ಮಾತ್ರ)',back:'ಹಿಂದೆ',send:'ಅಭಿಪ್ರಾಯ ಕಳುಹಿಸಿ',privacy:'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ವ್ಯಾಪಾರ ಮಾಲೀಕರಿಗೆ ಹೋಗುತ್ತದೆ. ನೀವು ಕೇಳಿದರೆ ಮಾತ್ರ ಫೋನ್ ಸಂಖ್ಯೆ ಬಳಸಲಾಗುತ್ತದೆ.',thanks:'ಧನ್ಯವಾದಗಳು!',saved:'ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ The Green House ಗೆ ಕಳುಹಿಸಲಾಗಿದೆ.',gTitle:'Google ನಲ್ಲಿಯೂ ಹಂಚಿಕೊಳ್ಳಲು ಬಯಸುವಿರಾ?',gBody:'ಇದು ನಿಮ್ಮ ಆಯ್ಕೆ. ರೇಟಿಂಗ್ ಏನೇ ಇರಲಿ, ಯಾರು ಬೇಕಾದರೂ Google ನಲ್ಲಿ ವಿಮರ್ಶೆ ಬರೆಯಬಹುದು. ನೀವೇ ಬರೆದು ಪೋಸ್ಟ್ ಮಾಡುತ್ತೀರಿ.',gBtn:'Google ವಿಮರ್ಶೆ ಬರೆಯಿರಿ',copy:'ನನ್ನ ಅಭಿಪ್ರಾಯ ನಕಲಿಸಿ',done:'ಮುಗಿಯಿತು',foot:'Neario ReviewFlow ನಿಂದ',copied:'ನಕಲಿಸಲಾಗಿದೆ. ನಿಮ್ಮ Google ವಿಮರ್ಶೆಯಲ್ಲಿ ಅಂಟಿಸಿ.',demoG:'ನಿಜವಾದ ಆವೃತ್ತಿಯಲ್ಲಿ ಇದು ವ್ಯಾಪಾರದ Google ವಿಮರ್ಶೆ ಫಾರ್ಮ್ ತೆರೆಯುತ್ತದೆ.',pick:'ದಯವಿಟ್ಟು ರೇಟಿಂಗ್ ಆರಿಸಿ',
+ r:['ಕಳಪೆ','ಸಾಧಾರಣ','ಒಳ್ಳೆಯದು','ತುಂಬಾ ಒಳ್ಳೆಯದು','ಅತ್ಯುತ್ತಮ'],S:['ಹೇರ್‌ಕಟ್','ಫೇಶಿಯಲ್','ಹೇರ್ ಸ್ಪಾ','ಇತರೆ'],T:['ಸ್ನೇಹಪರ ಸಿಬ್ಬಂದಿ','ಸ್ವಚ್ಛತೆ','ಕಾಯುವ ಸಮಯ','ಹಣಕ್ಕೆ ತಕ್ಕ ಮೌಲ್ಯ','ಕೆಲಸದ ಗುಣಮಟ್ಟ','ಬುಕಿಂಗ್ ಸುಲಭವಾಗಿತ್ತು']}
+};
+var lang='en',rating=0,svc=-1,tags={};
+function t(){return L[lang]}
+function render(){
+  var x=t();
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-t]').forEach(function(e){e.textContent=x[e.dataset.t]});
+  $('#stars').innerHTML=[1,2,3,4,5].map(function(i){return '<button role="radio" aria-checked="'+(rating===i)+'" aria-label="'+i+' – '+x.r[i-1]+'" data-r="'+i+'" class="'+(i<=rating?'on':'')+'">★</button>'}).join('');
+  $('#rl').textContent=rating?x.r[rating-1]:'';
+  $('#svcs').innerHTML=x.S.map(function(s,i){return '<button class="chip" data-s="'+i+'" aria-pressed="'+(svc===i)+'">'+s+'</button>'}).join('');
+  $('#tags').innerHTML=x.T.map(function(s,i){return '<button class="chip" data-g="'+i+'" aria-pressed="'+(!!tags[i])+'">'+s+'</button>'}).join('');
+  document.querySelectorAll('.lang button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.l===lang))});
+  $('#n1').disabled=!rating;
+}
+function step(n){
+  ['s1','s2','s3'].forEach(function(id,i){$('#'+id).hidden=i!==n-1});
+  document.querySelectorAll('.dots i').forEach(function(d,i){d.classList.toggle('on',i<n)});
+  var h=$('#s'+n+' h1');h.setAttribute('tabindex','-1');h.focus({preventScroll:true});window.scrollTo(0,0);
+}
+function toast(m){var e=$('#toast');e.textContent=m;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},3200)}
+document.addEventListener('click',function(ev){
+  var b=ev.target.closest('button,a');if(!b)return;var d=b.dataset;
+  if(d.l){lang=d.l;render();return}
+  if(d.r){rating=+d.r;render();return}
+  if(d.s!==undefined){svc=svc===+d.s?-1:+d.s;render();return}
+  if(d.g!==undefined){tags[d.g]=!tags[d.g];render();return}
+  if(b.id==='n1'){if(!rating){toast(t().pick);return}step(2);return}
+  if(b.id==='b2'){step(1);return}
+  if(b.id==='n2'){
+    if($('#ph').value.trim()&&!$('#ck').checked){$('#cerr').hidden=false;$('#ck').focus();return}
+    $('#cerr').hidden=true;
+    /* Live version: POST {rating, service, tags, text, phone, source} to your feedback API here.
+       Every customer then sees the same Google step below, whatever their rating. */
+    var txt=$('#txt').value.trim(),q=$('#q');q.hidden=!txt;q.textContent=txt?'“'+txt+'”':'';$('#copy').hidden=!txt;step(3);return}
+  if(b.id==='gbtn'){ev.preventDefault();toast(t().demoG);return}
+  if(b.id==='copy'){var v=$('#txt').value;
+    var ok=function(){toast(t().copied)};
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(ok,function(){var q=$('#q');var r=document.createRange();r.selectNodeContents(q);var s=getSelection();s.removeAllRanges();s.addRange(r);toast(t().copied)})}return}
+  if(b.id==='again'){rating=0;svc=-1;tags={};$('#txt').value='';$('#ph').value='';$('#ck').checked=false;$('#ckwrap').hidden=true;render();step(1)}
+});
+document.addEventListener('input',function(e){if(e.target.id==='ph'){var on=!!e.target.value.trim();$('#ckwrap').hidden=!on;if(!on){$('#ck').checked=false;$('#cerr').hidden=true}}});
+if(location.hash==='#dineout')$('#dchip').hidden=false;
+window.addEventListener('hashchange',function(){$('#dchip').hidden=location.hash!=='#dineout'});
+render();
+})();
+</script>
+
+</body>
+</html>

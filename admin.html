@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Neario Admin</title>
+<meta name="description" content="Internal admin panel.">
+<meta name="robots" content="noindex">
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: operator console. Top bar + four KPI tiles + MRR chart beside plan mix, then a searchable client table with a detail drawer and a support queue. Denser than the client dashboard. */
+:root{
+  --bg:#f4f1e8;--surface:#fffdf8;--surface-2:#eee9db;--line:#e2dccb;--fg:#17261d;--muted:#65726a;
+  --primary:#1f5a36;--on-primary:#fff;--accent-text:#1f5a36;--sage:#dfe9d3;--sage-ink:#2c5a3b;
+  --green:#2f9150;--green-soft:#dcefd9;--orange:#d9780f;--orange-soft:#fdecd0;--red:#c8442f;--red-soft:#f9e0da;--blue:#2f6bdc;--blue-soft:#dde8fb;--purple:#7a5cd6;
+  --shadow:0 1px 2px rgba(35,50,30,.06),0 8px 24px rgba(35,50,30,.06);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1612;--surface:#17201a;--surface-2:#1e2a22;--line:#2a372e;--fg:#eaf0e6;--muted:#9aa99f;
+  --primary:#3f9a60;--accent-text:#8fd0a0;--sage:#223a2a;--sage-ink:#bfe3c8;
+  --green:#52b574;--green-soft:#1d3524;--orange:#f5a243;--orange-soft:#3a2a14;--red:#ee7a66;--red-soft:#3d2018;--blue:#6e9bf0;--blue-soft:#1d2a47;--purple:#a58bf0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1612;--surface:#17201a;--surface-2:#1e2a22;--line:#2a372e;--fg:#eaf0e6;--muted:#9aa99f;
+  --primary:#3f9a60;--accent-text:#8fd0a0;--sage:#223a2a;--sage-ink:#bfe3c8;
+  --green:#52b574;--green-soft:#1d3524;--orange:#f5a243;--orange-soft:#3a2a14;--red:#ee7a66;--red-soft:#3d2018;--blue:#6e9bf0;--blue-soft:#1d2a47;--purple:#a58bf0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:6px}
+.num{font-variant-numeric:tabular-nums}
+.in{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.bar{background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .in{display:flex;align-items:center;gap:16px;padding-block:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:34px;height:34px;border-radius:10px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:800}
+.brand b{font-size:15px;letter-spacing:-.02em}.brand span{display:block;font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.tabs{display:flex;gap:4px;margin-left:12px;flex-wrap:wrap}
+.tabs button{border:0;background:none;border-radius:10px;padding:8px 14px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--sage);color:var(--sage-ink)}
+.me{margin-left:auto;display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px}
+.av{width:32px;height:32px;border-radius:50%;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:700;font-size:12px}
+main{padding-block:18px 48px;display:flex;flex-direction:column;gap:14px}
+.demo{font-size:12px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:12px;padding:8px 12px}
+h1{margin:0;font-size:24px;letter-spacing:-.03em}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.pagehead p{margin:4px 0 0;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:16px;min-width:0}
+.card h2{margin:0;font-size:15px;letter-spacing:-.01em}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi span{color:var(--muted);font-size:13px;font-weight:600}.kpi b{display:block;font-size:28px;letter-spacing:-.04em;margin-top:6px;line-height:1.1}
+.kpi small{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+.up{color:var(--green);font-weight:700}.dn{color:var(--red);font-weight:700}
+.row2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px}
+.row3{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px}
+.ch{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.sel,.search{display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:0 10px;height:36px}
+.sel select,.search input{background:none;border:0;outline:0;height:100%;min-width:0}
+.sel select option{background:var(--surface);color:var(--fg)}
+.search{min-width:200px}.search:focus-within{border-color:var(--primary)}
+.pill{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--muted)}
+.pill[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:720px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);position:sticky;top:0}
+th button{background:none;border:0;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;font-weight:700}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.r,th.r{text-align:right}
+.cn{display:flex;align-items:center;gap:10px;min-width:0}
+.cn i{width:30px;height:30px;border-radius:9px;background:var(--sage);color:var(--sage-ink);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:12px;flex:none}
+.cn button{background:none;border:0;padding:0;text-align:left;font-weight:700;color:var(--fg)}
+.cn button:hover{text-decoration:underline}.cn small{display:block;color:var(--muted);font-weight:400}
+.st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 10px}
+.st.active{background:var(--green-soft);color:var(--green)}.st.trial{background:var(--blue-soft);color:var(--blue)}
+.st.past{background:var(--red-soft);color:var(--red)}.st.churned{background:var(--surface-2);color:var(--muted)}
+.hb{display:inline-flex;gap:2px;align-items:flex-end;height:16px;vertical-align:middle}
+.hb i{width:4px;border-radius:2px;background:var(--green)}.hb.lo i{background:var(--orange)}.hb.no i{background:var(--line)}
+.mix{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.mix div{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13px}
+.bar2{grid-column:1/-1;height:8px;border-radius:9px;background:var(--surface-2);overflow:hidden}.bar2 i{display:block;height:100%;border-radius:9px}
+.tk{display:flex;flex-direction:column}
+.t{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:12px 0;border-top:1px solid var(--line);align-items:start}
+.t:first-child{border-top:0}
+.t b{display:block}.t span.m{color:var(--muted);font-size:12.5px}
+.pri{font-size:11px;font-weight:700;border-radius:99px;padding:2px 9px}
+.pri.high{background:var(--red-soft);color:var(--red)}.pri.med{background:var(--orange-soft);color:var(--orange)}.pri.low{background:var(--surface-2);color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:7px 12px;font-weight:600;font-size:13px}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.state{text-align:center;padding:28px 12px;color:var(--muted)}.state b{display:block;color:var(--fg);margin-bottom:4px}
+.skel{border-radius:10px;height:18px;background:linear-gradient(90deg,var(--surface-2),var(--line),var(--surface-2));background-size:200% 100%;animation:sh 1.3s linear infinite;margin:10px 0}
+@keyframes sh{to{background-position:-200% 0}}
+.dback{position:fixed;inset:0;background:rgba(10,20,14,.4);z-index:50}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:60;overflow-y:auto;padding:20px;padding-top:max(20px,env(safe-area-inset-top,0px));padding-right:max(20px,env(safe-area-inset-right,0px));box-shadow:-12px 0 40px rgba(0,0,0,.2)}
+.drawer h2{margin:6px 0 2px;font-size:22px;letter-spacing:-.03em}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:14px 0}.dl dt{color:var(--muted)}.dl dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:36px;height:36px;font-size:16px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:12px;font-weight:600;width:min(420px,calc(100% - 32px));text-align:center;z-index:90}
+[hidden]{display:none!important}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.row2,.row3{grid-template-columns:1fr}}
+@media (max-width:480px){.kpis{grid-template-columns:1fr}.me span{display:none}.search{min-width:0;flex:1}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none}}
+</style>
+
+<header class="bar"><div class="in">
+  <div class="brand"><span class="mark" aria-hidden="true">N</span><div><b>Neario ReviewFlow</b><span>Admin</span></div></div>
+  <div class="tabs" role="tablist" aria-label="Admin sections">
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="clients" aria-selected="false">Clients</button>
+    <button role="tab" data-tab="support" aria-selected="false">Support</button>
+  </div>
+  <div class="me"><span>Neario team</span><span class="av" aria-hidden="true">KS</span></div>
+</div></header>
+
+<main class="in" id="view" tabindex="-1"></main>
+<div id="layer"></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var inr=function(n){return '₹'+Math.round(n).toLocaleString('en-IN')};
+var PRICE=599,YEAR=599*9,MO_YEAR=YEAR/12;/* yearly: pay 9 months, get 12 */
+function mv(c){return c.plan==='yearly'?MO_YEAR:PRICE}
+/* ---- sample clients (clearly example data) ---- */
+var NAMES=[['The Green House','Salon','Bengaluru'],['Glow Studio','Salon','Bengaluru'],['Aramane Café','Café','Bengaluru'],['Spice Route','Restaurant','Mysuru'],['Urban Cuts','Salon','Hubballi'],['Dr. Rao Dental','Clinic','Bengaluru'],['Kaveri Sweets','Retail','Mangaluru'],['Blue Door Bistro','Restaurant','Bengaluru'],['Lotus Spa','Salon','Mysuru'],['Fresh Basket','Retail','Bengaluru'],['Namma Tiffins','Restaurant','Bengaluru'],['SmileCare Clinic','Clinic','Belagavi'],['Tress & Co','Salon','Bengaluru'],['Brew Lab','Café','Bengaluru'],['Sunrise Opticals','Retail','Mysuru'],['Royal Barbers','Salon','Bengaluru'],['Coastal Kitchen','Restaurant','Mangaluru'],['Pure Skin Clinic','Clinic','Bengaluru']];
+var ST=['active','active','active','trial','active','past','active','trial','active','active','churned','active','trial','active','active','past','active','trial'];
+var r0=7;function rnd(){r0=(r0*1664525+1013904223)%4294967296;return r0/4294967296}
+var DAY=864e5,NOW=Date.now();
+var CL=NAMES.map(function(n,i){
+  var st=ST[i],loc=1+Math.floor(rnd()*3),fb=st==='churned'?0:Math.round(40+rnd()*900),last=st==='churned'?40+Math.floor(rnd()*30):Math.floor(rnd()*(st==='past'?9:3));
+  return {id:i+1,name:n[0],type:n[1],city:n[2],status:st,loc:loc,fb:fb,rating:+(3.7+rnd()*1.2).toFixed(1),joined:NOW-(20+Math.floor(rnd()*260))*DAY,plan:i%3===0?'yearly':'monthly',trialEnds:st==='trial'?NOW+(2+Math.floor(rnd()*10))*DAY:null,lastActive:NOW-last*DAY,devices:Math.floor(rnd()*loc*2)+(st==='churned'?0:1),email:n[0].toLowerCase().replace(/[^a-z]/g,'')+'@example.com',g:st!=='trial'&&rnd()>.25};
+});
+var TICKETS=[
+ {id:'T-104',c:'Spice Route',s:'Google connection fails on sign-in',p:'high',age:'2 hours ago'},
+ {id:'T-103',c:'Pure Skin Clinic',s:'Payment failed twice, plan is on hold',p:'high',age:'5 hours ago'},
+ {id:'T-102',c:'The Green House',s:'Need a second QR code for the new counter',p:'med',age:'Yesterday'},
+ {id:'T-101',c:'Tress & Co',s:'How do I change the feedback languages?',p:'low',age:'Yesterday'},
+ {id:'T-100',c:'Royal Barbers',s:'Invoice needs GST number added',p:'med',age:'2 days ago'}
+];
+var S={tab:'overview',q:'',status:'all',type:'all',sort:'name',dir:1,range:6,state:'ready',open:null,tk:TICKETS.slice()};
+function mrr(){return CL.filter(function(c){return c.status==='active'||c.status==='past'}).reduce(function(s,c){return s+mv(c)},0)}
+function count(s){return CL.filter(function(c){return c.status===s}).length}
+function ago(t){var d=Math.round((NOW-t)/DAY);return d<=0?'Today':d===1?'Yesterday':d+' days ago'}
+function health(c){
+  if(c.status==='churned')return ['no',[3,5,7,9,11],'Churned'];
+  var d=Math.round((NOW-c.lastActive)/DAY);
+  var lvl=d>4||c.status==='past'?1:d>1?3:5;
+  var lo=lvl<4;return [lo?'lo':'',[3,5,7,9,11].map(function(h,i){return i<lvl?h+4:3}).slice(0,5),lvl>=4?'Healthy':lvl>=3?'Watch':'At risk'];
+}
+function toast(m){var e=$('#toast');e.textContent=m;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){e.hidden=true},3200)}
+function gate(h){
+  if(S.state==='loading')return '<div class="card">'+'<div class="skel"></div>'.repeat(6)+'</div>';
+  if(S.state==='error')return '<div class="card state"><b>We could not load this</b>Check the connection and try again.<div style="margin-top:12px"><button class="btn p" data-retry>Try again</button></div></div>';
+  return h;
+}
+/* ---- MRR series: built from client join dates, so it matches the client list ---- */
+function series(n){
+  var out=[],m=new Date(NOW);m.setDate(1);m.setHours(0,0,0,0);
+  for(var i=n-1;i>=0;i--){
+    var s=new Date(m.getFullYear(),m.getMonth()-i,1),e=new Date(m.getFullYear(),m.getMonth()-i+1,1);
+    var paying=CL.filter(function(c){return c.status!=='trial'&&c.joined<e.getTime()&&!(c.status==='churned'&&c.lastActive<s.getTime())}).reduce(function(t,c){return t+mv(c)},0);
+    out.push({l:s.toLocaleString('en-IN',{month:'short'}),v:paying});
+  }
+  return out;
+}
+function chart(){
+  var d=series(S.range),W=640,H=220,m={l:56,r:14,t:14,b:28},mx=Math.max.apply(null,d.map(function(x){return x.v}))*1.15||1;
+  var bw=(W-m.l-m.r)/d.length,y=function(v){return m.t+(1-v/mx)*(H-m.t-m.b)},g='',ticks=4;
+  for(var i=0;i<=ticks;i++){var v=mx*i/ticks;g+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y(v)+'" y2="'+y(v)+'" style="stroke:var(--line)"/><text x="'+(m.l-8)+'" y="'+(y(v)+4)+'" text-anchor="end" style="fill:var(--muted);font-size:11px">'+(v>=1000?Math.round(v/1000*10)/10+'k':Math.round(v))+'</text>'}
+  var bars=d.map(function(x,i){var bx=m.l+i*bw+bw*.2,h=H-m.b-y(x.v);return '<rect x="'+bx+'" y="'+y(x.v)+'" width="'+bw*.6+'" height="'+Math.max(h,0)+'" rx="5" style="fill:'+(i===d.length-1?'var(--primary)':'var(--green)')+';opacity:'+(i===d.length-1?1:.55)+'"/><text x="'+(bx+bw*.3)+'" y="'+(H-8)+'" text-anchor="middle" style="fill:var(--muted);font-size:11px">'+x.l+'</text>'}).join('');
+  var last=d[d.length-1],lx=m.l+(d.length-1)*bw+bw*.5;
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Monthly recurring revenue by month">'+g+bars+'<text x="'+lx+'" y="'+(y(last.v)-6)+'" text-anchor="middle" style="fill:var(--fg);font-size:12px;font-weight:700">'+inr(last.v)+'</text></svg>';
+}
+/* ---- views ---- */
+function vOverview(){
+  var act=count('active')+count('past'),tr=count('trial'),ch=count('churned'),fb=CL.reduce(function(s,c){return s+c.fb},0);
+  var prevM=series(2)[0].v,curM=mrr(),g=prevM?(curM-prevM)/prevM*100:0;
+  var types=['Salon','Restaurant','Café','Clinic','Retail'].map(function(t){return [t,CL.filter(function(c){return c.type===t}).length]});
+  var risk=CL.filter(function(c){return health(c)[2]==='At risk'&&c.status!=='churned'}).length;
+  var colors=['var(--green)','var(--blue)','var(--orange)','var(--purple)','var(--muted)'];
+  return gate('<div class="pagehead"><div><h1>Overview</h1><p>How Neario is doing across all client businesses.</p></div><div class="tools"><button class="btn" data-state="loading">Preview loading</button><button class="btn" data-state="error">Preview error</button></div></div>'+
+  '<div class="kpis">'+
+  '<div class="card kpi"><span>Monthly recurring revenue</span><b class="num">'+inr(curM)+'</b><small>'+(Math.abs(g)<0.05?'No change':'<span class="'+(g>=0?'up':'dn')+'">'+(g>=0?'▲':'▼')+' '+Math.abs(g).toFixed(1)+'%</span>')+' vs last month</small></div>'+
+  '<div class="card kpi"><span>Paying clients</span><b class="num">'+act+'</b><small>'+count('past')+' with a failed payment</small></div>'+
+  '<div class="card kpi"><span>Trials</span><b class="num">'+tr+'</b><small>'+CL.filter(function(c){return c.status==='trial'&&c.trialEnds-NOW<4*DAY}).length+' ending within 3 days</small></div>'+
+  '<div class="card kpi"><span>Feedback collected</span><b class="num">'+fb.toLocaleString('en-IN')+'</b><small>'+risk+' clients at risk · '+ch+' churned</small></div></div>'+
+  '<div class="row2"><section class="card"><div class="ch"><h2>Monthly recurring revenue</h2><div class="tools" role="group" aria-label="Range">'+[3,6,12].map(function(n){return '<button class="pill" data-range="'+n+'" aria-pressed="'+(S.range===n)+'">'+n+' months</button>'}).join('')+'</div></div>'+chart()+'</section>'+
+  '<section class="card"><div class="ch"><h2>Clients by business type</h2></div><div class="mix">'+types.map(function(t,i){return '<div><span>'+t[0]+'</span><span class="num">'+t[1]+'</span><span class="bar2"><i style="width:'+(t[1]/CL.length*100)+'%;background:'+colors[i]+'"></i></span></div>'}).join('')+'</div></section></div>'+
+  '<section class="card"><div class="ch"><h2>Needs attention</h2><button class="btn" data-tab="support">Open support queue</button></div><div class="tk">'+
+  CL.filter(function(c){return c.status==='past'||(c.status==='trial'&&c.trialEnds-NOW<4*DAY)}).map(function(c){return '<div class="t"><div><b>'+esc(c.name)+'</b><span class="m">'+(c.status==='past'?'Payment failed. Plan on hold until it clears.':'Trial ends '+new Date(c.trialEnds).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'. Not converted yet.')+'</span></div><button class="btn" data-open="'+c.id+'">View</button></div>'}).join('')+'</div></section>');
+}
+function list(){
+  var q=S.q.trim().toLowerCase(),a=CL.filter(function(c){return (S.status==='all'||c.status===S.status)&&(S.type==='all'||c.type===S.type)&&(!q||(c.name+' '+c.city+' '+c.email).toLowerCase().indexOf(q)>-1)});
+  var k=S.sort;a.sort(function(x,y){var u=x[k],v=y[k];if(typeof u==='string'){u=u.toLowerCase();v=v.toLowerCase()}return (u>v?1:u<v?-1:0)*S.dir});return a;
+}
+function rows(){
+  var a=list();
+  if(!a.length)return '<tr><td colspan="8"><div class="state"><b>No clients match</b>Clear the search or change a filter.</div></td></tr>';
+  var LB={active:'Active',trial:'Trial',past:'Payment failed',churned:'Churned'};
+  return a.map(function(c){var h=health(c);return '<tr><td><div class="cn"><i aria-hidden="true">'+esc(c.name[0])+'</i><div><button data-open="'+c.id+'">'+esc(c.name)+'</button><small>'+esc(c.type)+' · '+esc(c.city)+'</small></div></div></td>'+
+   '<td><span class="st '+c.status+'">'+LB[c.status]+'</span></td><td class="r num">'+c.loc+'</td><td class="r num">'+c.fb.toLocaleString('en-IN')+'</td><td class="r num">'+(c.fb?c.rating.toFixed(1)+' ★':'–')+'</td>'+
+   '<td><span class="hb '+h[0]+'" role="img" aria-label="'+h[2]+'">'+h[1].map(function(x){return '<i style="height:'+x+'px"></i>'}).join('')+'</span> <span style="color:var(--muted);font-size:12px">'+h[2]+'</span></td><td>'+ago(c.lastActive)+'</td><td class="r num">'+(c.status==='active'||c.status==='past'?inr(mv(c)):'–')+'</td></tr>'}).join('');
+}
+function th(k,l,r){return '<th'+(r?' class="r"':'')+' aria-sort="'+(S.sort===k?(S.dir>0?'ascending':'descending'):'none')+'"><button data-sort="'+k+'">'+l+(S.sort===k?(S.dir>0?' ↑':' ↓'):'')+'</button></th>'}
+function vClients(){
+  return gate('<div class="pagehead"><div><h1>Clients</h1><p id="cc"></p></div><div class="tools"><button class="btn p" data-add>Add client</button></div></div>'+
+  '<section class="card"><div class="ch"><div class="tools"><label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Search name, city, email" value="'+esc(S.q)+'" aria-label="Search clients"></label>'+
+  '<label class="sel"><select id="fs" aria-label="Status"><option value="all">All statuses</option><option value="active">Active</option><option value="trial">Trial</option><option value="past">Payment failed</option><option value="churned">Churned</option></select></label>'+
+  '<label class="sel"><select id="ft" aria-label="Business type"><option value="all">All types</option><option>Salon</option><option>Restaurant</option><option>Café</option><option>Clinic</option><option>Retail</option></select></label></div></div>'+
+  '<div class="tw"><table><thead><tr>'+th('name','Client')+th('status','Status')+th('loc','Locations',1)+th('fb','Feedback',1)+th('rating','Rating',1)+'<th>Health</th>'+th('lastActive','Last active')+'<th class="r">MRR</th></tr></thead><tbody id="tb">'+rows()+'</tbody></table></div></section>');
+}
+function vSupport(){
+  return gate('<div class="pagehead"><div><h1>Support</h1><p>'+S.tk.length+' open requests from clients.</p></div></div><section class="card"><div class="tk">'+
+  (S.tk.length?S.tk.map(function(t){return '<div class="t"><div><b>'+esc(t.s)+'</b><span class="m">'+t.id+' · '+esc(t.c)+' · '+t.age+'</span></div><div style="display:flex;gap:8px;align-items:center"><span class="pri '+t.p+'">'+({high:'High',med:'Medium',low:'Low'})[t.p]+'</span><button class="btn" data-resolve="'+t.id+'">Resolve</button></div></div>'}).join(''):'<div class="state"><b>All caught up</b>No open requests.</div>')+'</div></section>');
+}
+function drawer(c){
+  var LB={active:'Active',trial:'Trial',past:'Payment failed',churned:'Churned'};
+  return '<div class="dback" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dn"><div style="display:flex;justify-content:flex-end"><button class="iconbtn" data-close aria-label="Close">✕</button></div>'+
+  '<span class="st '+c.status+'">'+LB[c.status]+'</span><h2 id="dn">'+esc(c.name)+'</h2><div style="color:var(--muted)">'+esc(c.type)+' · '+esc(c.city)+'</div>'+
+  '<dl class="dl"><dt>Owner email</dt><dd>'+esc(c.email)+'</dd><dt>Joined</dt><dd>'+new Date(c.joined).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'</dd>'+
+  (c.trialEnds?'<dt>Trial ends</dt><dd>'+new Date(c.trialEnds).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</dd>':'')+
+  '<dt>Plan</dt><dd>'+(c.status==='trial'?'Not on a plan yet':'Growth Plan · '+(c.plan==='yearly'?'Yearly':'Monthly'))+'</dd>'+(c.status==='trial'?'':'<dt>Billing</dt><dd>'+(c.plan==='yearly'?inr(YEAR)+' once a year (3 months free)':inr(PRICE)+' every month')+'</dd>')+'<dt>Locations</dt><dd>'+c.loc+'</dd><dt>TapReview devices</dt><dd>'+c.devices+'</dd><dt>Feedback collected</dt><dd>'+c.fb.toLocaleString('en-IN')+'</dd><dt>Average rating</dt><dd>'+(c.fb?c.rating.toFixed(1)+' ★':'–')+'</dd><dt>Google connected</dt><dd>'+(c.g?'Yes':'No')+'</dd><dt>Last active</dt><dd>'+ago(c.lastActive)+'</dd></dl>'+
+  '<div class="acts"><button class="btn p" data-act="Impersonation opens their dashboard in the full build.">View their dashboard</button><button class="btn" data-act="Reminder email sends from your backend.">Send reminder</button>'+(c.status==='trial'?'<button class="btn" data-act="Trial extension saves to your backend.">Extend trial 7 days</button>':'')+(c.status==='past'?'<button class="btn" data-act="Retry payment runs through your billing provider.">Retry payment</button>':'')+'</div></aside>';
+}
+function render(){
+  document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
+  $('#view').innerHTML='<div class="demo" role="note">Prototype with example clients. Figures are generated, not real customers. Monthly plan is ₹599 a month. Yearly is ₹5,391 in one bill for 12 months, counted as about ₹449 a month in MRR.</div>'+(S.tab==='overview'?vOverview():S.tab==='clients'?vClients():vSupport());
+  if(S.tab==='clients'&&S.state==='ready'){$('#fs').value=S.status;$('#ft').value=S.type;upd()}
+  $('#layer').innerHTML=S.open?drawer(CL.filter(function(c){return c.id===S.open})[0]):'';
+  if(S.open){var d=$('.drawer');d.querySelector('[data-close]').focus()}
+}
+function upd(){$('#tb').innerHTML=rows();$('#cc').textContent=list().length+' of '+CL.length+' clients'}
+/* ---- events ---- */
+document.addEventListener('click',function(e){
+  var b=e.target.closest('button,.dback');if(!b)return;var d=b.dataset;
+  if(d.tab){S.tab=d.tab;S.state='ready';S.open=null;render();return}
+  if(d.range){S.range=+d.range;render();return}
+  if(d.state){S.state=d.state;render();if(d.state==='loading')setTimeout(function(){if(S.state==='loading'){S.state='ready';render()}},700);return}
+  if(d.retry!==undefined){S.state='ready';render();toast('Loaded');return}
+  if(d.sort){if(S.sort===d.sort)S.dir*=-1;else{S.sort=d.sort;S.dir=1}render();return}
+  if(d.open){S.open=+d.open;render();return}
+  if(d.close!==undefined){S.open=null;render();return}
+  if(d.act){toast(d.act);return}
+  if(d.add!==undefined){toast('Adding a client needs your backend. Clients normally sign up on the website.');return}
+  if(d.resolve){S.tk=S.tk.filter(function(t){return t.id!==d.resolve});render();toast('Marked as resolved');return}
+});
+document.addEventListener('input',function(e){if(e.target.id==='q'){S.q=e.target.value;upd()}});
+document.addEventListener('change',function(e){if(e.target.id==='fs'){S.status=e.target.value;upd()}if(e.target.id==='ft'){S.type=e.target.value;upd()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&S.open){S.open=null;render()}});
+render();
+})();
+</script>
+
+</body>
+</html>

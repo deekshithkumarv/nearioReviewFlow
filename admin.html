@@ -112,13 +112,19 @@ td.r,th.r{text-align:right}
 </style>
 
 <header class="bar"><div class="in">
-  <div class="brand"><span class="mark" aria-hidden="true">N</span><div><b>Neario ReviewFlow</b><span>Admin</span></div></div>
+  <a href="index.html" class="brand" style="text-decoration:none;color:inherit" title="Back to Neario Home"><span class="mark" aria-hidden="true">N</span><div><b>Neario ReviewFlow</b><span>Admin</span></div></a>
   <div class="tabs" role="tablist" aria-label="Admin sections">
     <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
     <button role="tab" data-tab="clients" aria-selected="false">Clients</button>
     <button role="tab" data-tab="support" aria-selected="false">Support</button>
   </div>
-  <div class="me"><span>Neario team</span><span class="av" aria-hidden="true">KS</span></div>
+  <div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap">
+    <a href="index.html" class="btn" style="text-decoration:none;font-size:12px;padding:5px 9px">🏠 Home</a>
+    <a href="dashboard.html" class="btn" style="text-decoration:none;font-size:12px;padding:5px 9px">📊 Dashboard</a>
+    <a href="feedback.html" target="_blank" class="btn" style="text-decoration:none;font-size:12px;padding:5px 9px">📱 Feedback ↗</a>
+    <a href="onboarding.html" class="btn" style="text-decoration:none;font-size:12px;padding:5px 9px">🚀 Setup</a>
+  </div>
+  <div class="me"><span class="av" aria-hidden="true">KS</span></div>
 </div></header>
 
 <main class="in" id="view" tabindex="-1"></main>
@@ -236,7 +242,7 @@ function drawer(c){
 }
 function render(){
   document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
-  $('#view').innerHTML='<div class="demo" role="note">Prototype with example clients. Figures are generated, not real customers. Monthly plan is ₹599 a month. Yearly is ₹5,391 in one bill for 12 months, counted as about ₹449 a month in MRR.</div>'+(S.tab==='overview'?vOverview():S.tab==='clients'?vClients():vSupport());
+  $('#view').innerHTML='<div class="demo" role="note">Prototype with example clients. Figures are generated, not real customers. Monthly plan is ₹599 a month. Yearly is ₹5,391 in one bill for 12 months, counted as about ₹449 a month in MRR. <span style="margin-left:8px;font-weight:600">Quick links: <a href="index.html" style="color:var(--accent-text)">Home</a> · <a href="dashboard.html" style="color:var(--accent-text)">Dashboard</a> · <a href="feedback.html" target="_blank" style="color:var(--accent-text)">Feedback Demo ↗</a> · <a href="onboarding.html" style="color:var(--accent-text)">Setup Wizard</a></span></div>'+(S.tab==='overview'?vOverview():S.tab==='clients'?vClients():vSupport());
   if(S.tab==='clients'&&S.state==='ready'){$('#fs').value=S.status;$('#ft').value=S.type;upd()}
   $('#layer').innerHTML=S.open?drawer(CL.filter(function(c){return c.id===S.open})[0]):'';
   if(S.open){var d=$('.drawer');d.querySelector('[data-close]').focus()}

@@ -1,0 +1,13 @@
+# Cloudflare Pages rewrites for clean URLs
+/dashboard    /dashboard.html    200
+/dashboard/   /dashboard.html    200
+/admin        /admin.html        200
+/admin/       /admin.html        200
+/feedback     /feedback.html     200
+/feedback/    /feedback.html     200
+/onboarding   /onboarding.html   200
+/onboarding/  /onboarding.html   200
+/privacy      /privacy.html      200
+/privacy/     /privacy.html      200
+/terms        /terms.html        200
+/terms/       /terms.html        200

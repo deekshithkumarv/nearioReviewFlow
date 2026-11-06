@@ -74,6 +74,14 @@ a{color:var(--accent-text)}
 </style>
 
 <div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;padding-bottom:2px">
+    <a href="index.html" style="text-decoration:none;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:4px">← Neario Home</a>
+    <div style="display:flex;gap:12px;font-weight:600">
+      <a href="dashboard.html" style="text-decoration:none;color:var(--muted)">Owner Dashboard</a>
+      <a href="onboarding.html" style="text-decoration:none;color:var(--muted)">Setup Wizard</a>
+      <a href="admin.html" style="text-decoration:none;color:var(--muted)">Admin</a>
+    </div>
+  </div>
   <div class="demo" role="note">Prototype: this is the page a customer sees after scanning the QR code or tapping a TapReview device. Nothing is sent anywhere.</div>
   <div class="dchip" id="dchip" hidden>Order #1042 · Table 5 · Neario Dineout</div>
   <header class="top">
@@ -119,8 +127,17 @@ a{color:var(--accent-text)}
     <a class="btn p" id="gbtn" href="#google-review"><span class="g" aria-hidden="true">G</span><span data-t="gBtn"></span></a>
     <button class="btn s" id="copy" hidden data-t="copy"></button>
     <button class="btn s" id="again" data-t="done"></button>
+    <a href="dashboard.html" class="btn p" style="text-decoration:none;margin-top:4px">View this feedback in Dashboard →</a>
   </section>
   <p class="foot" data-t="foot"></p>
+  <div style="display:flex;justify-content:center;gap:12px;font-size:12.5px;color:var(--muted);margin-top:-6px;flex-wrap:wrap">
+    <a href="index.html" style="color:var(--muted);text-decoration:none">Home</a> ·
+    <a href="dashboard.html" style="color:var(--muted);text-decoration:none">Owner Dashboard</a> ·
+    <a href="onboarding.html" style="color:var(--muted);text-decoration:none">Setup Wizard</a> ·
+    <a href="admin.html" style="color:var(--muted);text-decoration:none">Admin</a> ·
+    <a href="privacy.html" style="color:var(--muted);text-decoration:none">Privacy</a> ·
+    <a href="terms.html" style="color:var(--muted);text-decoration:none">Terms</a>
+  </div>
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 

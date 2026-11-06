@@ -81,8 +81,19 @@ input[aria-invalid="true"]{border-color:var(--red)}
 </style>
 
 <div class="wrap">
-  <div class="brand"><span class="mark" aria-hidden="true">N</span><span class="wm"><b>neario</b><small>REVIEWFLOW</small></span></div>
-  <div class="demo" role="note">Prototype: nothing is saved. The QR code is real and scannable, but the link is a placeholder address.</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <a href="index.html" class="brand" style="text-decoration:none;color:inherit" title="Back to Neario Home">
+      <span class="mark" aria-hidden="true">N</span>
+      <span class="wm"><b>neario</b><small>REVIEWFLOW</small></span>
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;flex-wrap:wrap">
+      <a href="index.html" class="btn s" style="text-decoration:none;font-size:12px;padding:6px 12px">🏠 Home</a>
+      <a href="dashboard.html" class="btn s" style="text-decoration:none;font-size:12px;padding:6px 12px">📊 Dashboard</a>
+      <a href="feedback.html" target="_blank" class="btn s" style="text-decoration:none;font-size:12px;padding:6px 12px">📱 Feedback Demo ↗</a>
+      <a href="admin.html" class="btn s" style="text-decoration:none;font-size:12px;padding:6px 12px">🔐 Admin</a>
+    </div>
+  </div>
+  <div class="demo" role="note">Prototype: nothing is saved. The QR code is real and scannable, but the link is a placeholder address. <span style="margin-left:8px">Ready? <a href="dashboard.html" style="font-weight:700;color:var(--accent-text)">Jump to Owner Dashboard →</a></span></div>
   <div class="rail" id="rail" aria-label="Setup progress"></div>
   <section class="card" id="card" aria-live="polite"></section>
 </div>
@@ -237,8 +248,17 @@ document.addEventListener('click',function(e){
   if(d.plan){D.plan=d.plan;render();return}
   if(d.copy!==undefined){var u=$('#url').textContent;(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(u):Promise.reject()).then(function(){toast('Link copied')},function(){var r=document.createRange();r.selectNodeContents($('#url'));var s=getSelection();s.removeAllRanges();s.addRange(r);toast('Link selected. Copy it manually.')});return}
   if(d.dl!==undefined){toast('Image download works in the full build. For now, take a screenshot of the QR code.');return}
-  if(d.finish!==undefined){toast('This opens your dashboard in the full build.');return}
+  if(d.finish!==undefined){
+    toast('Setup complete! Opening your dashboard…');
+    setTimeout(function(){window.location.href='dashboard.html'}, 500);
+    return;
+  }
 });
+try {
+  var qp=new URLSearchParams(window.location.search);
+  if(qp.get('biz')) D.biz=qp.get('biz');
+  if(qp.get('plan')&&(qp.get('plan')==='monthly'||qp.get('plan')==='yearly')) D.plan=qp.get('plan');
+} catch(e){}
 render();
 })();
 </script>

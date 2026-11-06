@@ -313,10 +313,10 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 
 <div class="app" id="app">
   <aside class="side" id="side" aria-label="Main navigation">
-    <div class="brand">
+    <a href="index.html" class="brand" style="text-decoration:none;color:inherit" title="Back to Neario Home">
       <div class="mark" aria-hidden="true">N</div>
       <div class="wm"><b>neario</b><small>REVIEWFLOW</small></div>
-    </div>
+    </a>
     <div class="ws rel">
       <button id="wsBtn" aria-haspopup="true" aria-expanded="false">
         <span class="ic"><svg class="i"><use href="#i-leaf"/></svg></span>
@@ -333,7 +333,15 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
       <button id="manageSub">Manage subscription <svg class="i" style="width:15px;height:15px"><use href="#i-right"/></svg></button>
     </div>
     <div class="sp"></div>
+    <div class="eyebrow">Settings &amp; Support</div>
     <nav class="nav" id="nav2"></nav>
+    <div class="eyebrow" style="margin-top:12px">All Portals</div>
+    <nav class="nav">
+      <a href="index.html"><svg class="i"><use href="#i-grid"/></svg>Marketing Home</a>
+      <a href="feedback.html" target="_blank"><svg class="i"><use href="#i-chat"/></svg>Customer Feedback ↗</a>
+      <a href="onboarding.html"><svg class="i"><use href="#i-bolt"/></svg>Setup &amp; QR Wizard</a>
+      <a href="admin.html"><svg class="i"><use href="#i-gear"/></svg>Admin Console</a>
+    </nav>
   </aside>
   <div class="scrim" id="scrim"></div>
 
@@ -350,15 +358,28 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
           <button class="me" id="meBtn" aria-haspopup="true" aria-expanded="false"><span class="av">KS</span><span class="nm">Karthik S</span><svg class="i" style="width:16px"><use href="#i-down"/></svg></button>
           <div class="menu" id="meMenu" hidden>
             <div class="it"><b>Karthik S</b><small>Owner · The Green House</small></div>
+            <a href="index.html" class="it" style="text-decoration:none;display:flex;align-items:center;gap:8px">🏠 Marketing Home</a>
+            <a href="feedback.html" target="_blank" class="it" style="text-decoration:none;display:flex;align-items:center;gap:8px">📱 Customer Feedback ↗</a>
+            <a href="onboarding.html" class="it" style="text-decoration:none;display:flex;align-items:center;gap:8px">🚀 Setup &amp; QR Wizard</a>
+            <a href="admin.html" class="it" style="text-decoration:none;display:flex;align-items:center;gap:8px">🔐 Neario Admin Console</a>
+            <div style="border-top:1px solid var(--line);margin:4px 0"></div>
             <button data-toast="Profile settings open in the full build.">Profile</button>
             <button data-toast="Team access opens in the full build.">Team &amp; access</button>
-            <button data-toast="Signed out of the prototype.">Sign out</button>
+            <a href="index.html" class="it" style="text-decoration:none;color:var(--red,#c8442f)">Sign out</a>
           </div>
         </div>
       </div>
     </header>
     <div class="notice" role="note">
-      <span><b>Sample data.</b> Example feedback is generated so every chart and filter works. Connect your backend to replace it.</span>
+      <span><b>Sample data.</b> Example feedback is generated so every chart and filter works.
+        <span style="margin-left:8px;display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap">
+          Portals:
+          <a href="index.html" style="font-weight:700;color:var(--accent-text);text-decoration:none">Home</a> ·
+          <a href="feedback.html" target="_blank" style="font-weight:700;color:var(--accent-text);text-decoration:none">Customer Feedback ↗</a> ·
+          <a href="onboarding.html" style="font-weight:700;color:var(--accent-text);text-decoration:none">Setup Wizard</a> ·
+          <a href="admin.html" style="font-weight:700;color:var(--accent-text);text-decoration:none">Admin Panel</a>
+        </span>
+      </span>
       <span class="seg" role="group" aria-label="Preview page states">
         <button data-state="ready" aria-pressed="true">Data</button>
         <button data-state="loading" aria-pressed="false">Loading</button>

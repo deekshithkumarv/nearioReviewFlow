@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -13,6 +13,20 @@ export default function HomePage() {
   const [formErr, setFormErr] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const pricingData = {
     monthly: {
@@ -137,7 +151,8 @@ export default function HomePage() {
             </span>
           </Link>
 
-          <nav className="links" aria-label="Page sections">
+          {/* Desktop Navigation */}
+          <nav className="links desktop-links" aria-label="Page sections">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
             <a href="#honest">Honest reviews</a>
@@ -151,8 +166,120 @@ export default function HomePage() {
               Get 3 months free
             </a>
           </nav>
+
+          {/* Mobile Navigation Toggle */}
+          <div className="mobile-nav-toggle">
+            <a className="btn p btn-sm mobile-cta" href="#start">
+              3 months free
+            </a>
+            <button
+              type="button"
+              className="nav-burger"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
+              )}
+            </button>
+          </div>
         </header>
       </div>
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+          <div className="mobile-drawer-back" onClick={closeMobileMenu} />
+          <div className="mobile-drawer-box">
+            <div className="mobile-drawer-head">
+              <Link className="brand" href="#top" onClick={closeMobileMenu}>
+                <span className="mark" aria-hidden="true">N</span>
+                <span className="wm">
+                  <b>neario</b>
+                  <small>REVIEWFLOW</small>
+                </span>
+              </Link>
+              <button
+                type="button"
+                className="mobile-drawer-close"
+                aria-label="Close menu"
+                onClick={closeMobileMenu}
+              >
+                ✕
+              </button>
+            </div>
+
+            <a className="btn p full-btn" href="#start" onClick={closeMobileMenu}>
+              Get 3 months free
+            </a>
+
+            <div className="mobile-drawer-sec">Navigation</div>
+            <nav className="mobile-drawer-links" aria-label="Mobile page sections">
+              <a href="#how" onClick={closeMobileMenu}>
+                <span>How it works</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a href="#features" onClick={closeMobileMenu}>
+                <span>Features</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a href="#honest" onClick={closeMobileMenu}>
+                <span>Honest reviews</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a href="#agencies" onClick={closeMobileMenu}>
+                <span>For agencies</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a href="#pricing" onClick={closeMobileMenu}>
+                <span>Pricing</span>
+                <span aria-hidden="true">→</span>
+              </a>
+              <a href="#faq" onClick={closeMobileMenu}>
+                <span>FAQ</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            </nav>
+
+            <div className="mobile-drawer-sec">Portals & Access</div>
+            <nav className="mobile-drawer-links" aria-label="Mobile portals">
+              <Link href="/dashboard" onClick={closeMobileMenu}>
+                <span>Business Dashboard</span>
+                <span className="badge green">Live</span>
+              </Link>
+              <Link href="/feedback/demo-cafe-1" onClick={closeMobileMenu}>
+                <span>Customer Feedback QR</span>
+                <span className="badge orange">Try QR</span>
+              </Link>
+              <Link href="/onboarding" onClick={closeMobileMenu}>
+                <span>Setup & QR Wizard</span>
+                <span className="badge purple">Wizard</span>
+              </Link>
+              <Link href="/admin" onClick={closeMobileMenu}>
+                <span>Super Admin Console</span>
+                <span className="badge sage">Admin</span>
+              </Link>
+              <Link
+                href="/login"
+                onClick={closeMobileMenu}
+                style={{ fontWeight: 700, color: 'var(--primary)' }}
+              >
+                <span>Sign In to Account</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <main id="top">

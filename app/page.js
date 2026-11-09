@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import HeroPhoneMockup from './components/HeroPhoneMockup';
 
 export default function HomePage() {
   const [plan, setPlan] = useState('yearly');
@@ -317,38 +318,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="vis" aria-hidden="true">
-            <div className="phone">
-              <div className="b">The Green House</div>
-              <div className="q">How was your visit?</div>
-              <div className="st">★★★★<s>★</s></div>
-              <div className="ch">
-                <i className="on">Friendly staff</i>
-                <i>Waiting time</i>
-                <i className="on">Clean space</i>
-              </div>
-              <div className="go">Send feedback</div>
-            </div>
-            <div className="float">
-              <h3>
-                Business Growth Radar <span className="ex">Example</span>
-              </h3>
-              <div className="ir">
-                <i style={{ background: 'var(--orange-soft)', color: 'var(--orange)' }}>!</i>
-                <div>
-                  <b>Waiting time needs attention</b>
-                  <span>Customers mentioned delays</span>
-                </div>
-              </div>
-              <div className="ir">
-                <i style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>♥</i>
-                <div>
-                  <b>Staff behaviour is a strength</b>
-                  <span>Customers praised the team</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HeroPhoneMockup />
         </section>
 
         {/* How It Works (Three Steps) */}

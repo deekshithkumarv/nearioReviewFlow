@@ -19,3 +19,4 @@ if (isCloudflareCI) {
 } else {
   console.log('ℹ️ Local developer machine detected. Skipping postinstall OpenNext build.');
 }
+

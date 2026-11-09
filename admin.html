@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Neario Admin</title>
-<meta name="description" content="Internal admin panel.">
+<title>Admin | Neario ReviewFlow</title>
+<meta name="description" content="Neario team admin panel.">
 <meta name="robots" content="noindex">
 <style>[hidden]{display:none!important}img{max-width:100%}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -116,6 +116,7 @@ td.r,th.r{text-align:right}
   <div class="tabs" role="tablist" aria-label="Admin sections">
     <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
     <button role="tab" data-tab="clients" aria-selected="false">Clients</button>
+    <button role="tab" data-tab="agencies" aria-selected="false">Agencies</button>
     <button role="tab" data-tab="support" aria-selected="false">Support</button>
   </div>
   <div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap">
@@ -137,6 +138,8 @@ td.r,th.r{text-align:right}
 var $=function(s,r){return (r||document).querySelector(s)};
 var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 var inr=function(n){return '₹'+Math.round(n).toLocaleString('en-IN')};
+var AG=['Pixel & Co Marketing','Brandwise Digital','Lime Street Media'];
+function agOf(i){return i<4?AG[0]:i<9?AG[1]:i<13?AG[2]:'Direct'}
 var PRICE=599,YEAR=599*9,MO_YEAR=YEAR/12;/* yearly: pay 9 months, get 12 */
 function mv(c){return c.plan==='yearly'?MO_YEAR:PRICE}
 /* ---- sample clients (clearly example data) ---- */
@@ -146,7 +149,7 @@ var r0=7;function rnd(){r0=(r0*1664525+1013904223)%4294967296;return r0/42949672
 var DAY=864e5,NOW=Date.now();
 var CL=NAMES.map(function(n,i){
   var st=ST[i],loc=1+Math.floor(rnd()*3),fb=st==='churned'?0:Math.round(40+rnd()*900),last=st==='churned'?40+Math.floor(rnd()*30):Math.floor(rnd()*(st==='past'?9:3));
-  return {id:i+1,name:n[0],type:n[1],city:n[2],status:st,loc:loc,fb:fb,rating:+(3.7+rnd()*1.2).toFixed(1),joined:NOW-(20+Math.floor(rnd()*260))*DAY,plan:i%3===0?'yearly':'monthly',trialEnds:st==='trial'?NOW+(2+Math.floor(rnd()*10))*DAY:null,lastActive:NOW-last*DAY,devices:Math.floor(rnd()*loc*2)+(st==='churned'?0:1),email:n[0].toLowerCase().replace(/[^a-z]/g,'')+'@example.com',g:st!=='trial'&&rnd()>.25};
+  return {id:i+1,name:n[0],type:n[1],city:n[2],status:st,loc:loc,fb:fb,rating:+(3.7+rnd()*1.2).toFixed(1),joined:NOW-(20+Math.floor(rnd()*260))*DAY,plan:i%3===0?'yearly':'monthly',agency:agOf(i),login:st==='trial'?'Invited':'Active',trialEnds:st==='trial'?NOW+(2+Math.floor(rnd()*10))*DAY:null,lastActive:NOW-last*DAY,devices:Math.floor(rnd()*loc*2)+(st==='churned'?0:1),email:n[0].toLowerCase().replace(/[^a-z]/g,'')+'@example.com',g:st!=='trial'&&rnd()>.25};
 });
 var TICKETS=[
  {id:'T-104',c:'Spice Route',s:'Google connection fails on sign-in',p:'high',age:'2 hours ago'},
@@ -155,7 +158,7 @@ var TICKETS=[
  {id:'T-101',c:'Tress & Co',s:'How do I change the feedback languages?',p:'low',age:'Yesterday'},
  {id:'T-100',c:'Royal Barbers',s:'Invoice needs GST number added',p:'med',age:'2 days ago'}
 ];
-var S={tab:'overview',q:'',status:'all',type:'all',sort:'name',dir:1,range:6,state:'ready',open:null,tk:TICKETS.slice()};
+var S={ag:'all',tab:'overview',q:'',status:'all',type:'all',sort:'name',dir:1,range:6,state:'ready',open:null,tk:TICKETS.slice()};
 function mrr(){return CL.filter(function(c){return c.status==='active'||c.status==='past'}).reduce(function(s,c){return s+mv(c)},0)}
 function count(s){return CL.filter(function(c){return c.status===s}).length}
 function ago(t){var d=Math.round((NOW-t)/DAY);return d<=0?'Today':d===1?'Yesterday':d+' days ago'}
@@ -191,7 +194,7 @@ function chart(){
 }
 /* ---- views ---- */
 function vOverview(){
-  var act=count('active')+count('past'),tr=count('trial'),ch=count('churned'),fb=CL.reduce(function(s,c){return s+c.fb},0);
+  var act=count('active')+count('past'),tr=count('trial'),ch=count('churned'),fb=CL.reduce(function(s,c){return s+c.fb},0),via=CL.filter(function(c){return c.agency!=='Direct'}).length,direct=CL.length-via;
   var prevM=series(2)[0].v,curM=mrr(),g=prevM?(curM-prevM)/prevM*100:0;
   var types=['Salon','Restaurant','Café','Clinic','Retail'].map(function(t){return [t,CL.filter(function(c){return c.type===t}).length]});
   var risk=CL.filter(function(c){return health(c)[2]==='At risk'&&c.status!=='churned'}).length;
@@ -201,22 +204,22 @@ function vOverview(){
   '<div class="card kpi"><span>Monthly recurring revenue</span><b class="num">'+inr(curM)+'</b><small>'+(Math.abs(g)<0.05?'No change':'<span class="'+(g>=0?'up':'dn')+'">'+(g>=0?'▲':'▼')+' '+Math.abs(g).toFixed(1)+'%</span>')+' vs last month</small></div>'+
   '<div class="card kpi"><span>Paying clients</span><b class="num">'+act+'</b><small>'+count('past')+' with a failed payment</small></div>'+
   '<div class="card kpi"><span>Trials</span><b class="num">'+tr+'</b><small>'+CL.filter(function(c){return c.status==='trial'&&c.trialEnds-NOW<4*DAY}).length+' ending within 3 days</small></div>'+
-  '<div class="card kpi"><span>Feedback collected</span><b class="num">'+fb.toLocaleString('en-IN')+'</b><small>'+risk+' clients at risk · '+ch+' churned</small></div></div>'+
+  '<div class="card kpi"><span>Agencies</span><b class="num">'+AG.length+'</b><small>'+via+' clients through agencies · '+direct+' direct</small></div></div>'+
   '<div class="row2"><section class="card"><div class="ch"><h2>Monthly recurring revenue</h2><div class="tools" role="group" aria-label="Range">'+[3,6,12].map(function(n){return '<button class="pill" data-range="'+n+'" aria-pressed="'+(S.range===n)+'">'+n+' months</button>'}).join('')+'</div></div>'+chart()+'</section>'+
   '<section class="card"><div class="ch"><h2>Clients by business type</h2></div><div class="mix">'+types.map(function(t,i){return '<div><span>'+t[0]+'</span><span class="num">'+t[1]+'</span><span class="bar2"><i style="width:'+(t[1]/CL.length*100)+'%;background:'+colors[i]+'"></i></span></div>'}).join('')+'</div></section></div>'+
   '<section class="card"><div class="ch"><h2>Needs attention</h2><button class="btn" data-tab="support">Open support queue</button></div><div class="tk">'+
   CL.filter(function(c){return c.status==='past'||(c.status==='trial'&&c.trialEnds-NOW<4*DAY)}).map(function(c){return '<div class="t"><div><b>'+esc(c.name)+'</b><span class="m">'+(c.status==='past'?'Payment failed. Plan on hold until it clears.':'Trial ends '+new Date(c.trialEnds).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'. Not converted yet.')+'</span></div><button class="btn" data-open="'+c.id+'">View</button></div>'}).join('')+'</div></section>');
 }
 function list(){
-  var q=S.q.trim().toLowerCase(),a=CL.filter(function(c){return (S.status==='all'||c.status===S.status)&&(S.type==='all'||c.type===S.type)&&(!q||(c.name+' '+c.city+' '+c.email).toLowerCase().indexOf(q)>-1)});
+  var q=S.q.trim().toLowerCase(),a=CL.filter(function(c){return (S.status==='all'||c.status===S.status)&&(S.type==='all'||c.type===S.type)&&(S.ag==='all'||c.agency===S.ag)&&(!q||(c.name+' '+c.city+' '+c.email+' '+c.agency).toLowerCase().indexOf(q)>-1)});
   var k=S.sort;a.sort(function(x,y){var u=x[k],v=y[k];if(typeof u==='string'){u=u.toLowerCase();v=v.toLowerCase()}return (u>v?1:u<v?-1:0)*S.dir});return a;
 }
 function rows(){
   var a=list();
-  if(!a.length)return '<tr><td colspan="8"><div class="state"><b>No clients match</b>Clear the search or change a filter.</div></td></tr>';
+  if(!a.length)return '<tr><td colspan="9"><div class="state"><b>No clients match</b>Clear the search or change a filter.</div></td></tr>';
   var LB={active:'Active',trial:'Trial',past:'Payment failed',churned:'Churned'};
   return a.map(function(c){var h=health(c);return '<tr><td><div class="cn"><i aria-hidden="true">'+esc(c.name[0])+'</i><div><button data-open="'+c.id+'">'+esc(c.name)+'</button><small>'+esc(c.type)+' · '+esc(c.city)+'</small></div></div></td>'+
-   '<td><span class="st '+c.status+'">'+LB[c.status]+'</span></td><td class="r num">'+c.loc+'</td><td class="r num">'+c.fb.toLocaleString('en-IN')+'</td><td class="r num">'+(c.fb?c.rating.toFixed(1)+' ★':'–')+'</td>'+
+   '<td><span class="st '+c.status+'">'+LB[c.status]+'</span></td><td>'+(c.agency==='Direct'?'<span style="color:var(--muted)">Direct</span>':esc(c.agency))+'</td><td class="r num">'+c.loc+'</td><td class="r num">'+c.fb.toLocaleString('en-IN')+'</td><td class="r num">'+(c.fb?c.rating.toFixed(1)+' ★':'–')+'</td>'+
    '<td><span class="hb '+h[0]+'" role="img" aria-label="'+h[2]+'">'+h[1].map(function(x){return '<i style="height:'+x+'px"></i>'}).join('')+'</span> <span style="color:var(--muted);font-size:12px">'+h[2]+'</span></td><td>'+ago(c.lastActive)+'</td><td class="r num">'+(c.status==='active'||c.status==='past'?inr(mv(c)):'–')+'</td></tr>'}).join('');
 }
 function th(k,l,r){return '<th'+(r?' class="r"':'')+' aria-sort="'+(S.sort===k?(S.dir>0?'ascending':'descending'):'none')+'"><button data-sort="'+k+'">'+l+(S.sort===k?(S.dir>0?' ↑':' ↓'):'')+'</button></th>'}
@@ -224,26 +227,41 @@ function vClients(){
   return gate('<div class="pagehead"><div><h1>Clients</h1><p id="cc"></p></div><div class="tools"><button class="btn p" data-add>Add client</button></div></div>'+
   '<section class="card"><div class="ch"><div class="tools"><label class="search"><span aria-hidden="true">⌕</span><input id="q" type="search" placeholder="Search name, city, email" value="'+esc(S.q)+'" aria-label="Search clients"></label>'+
   '<label class="sel"><select id="fs" aria-label="Status"><option value="all">All statuses</option><option value="active">Active</option><option value="trial">Trial</option><option value="past">Payment failed</option><option value="churned">Churned</option></select></label>'+
-  '<label class="sel"><select id="ft" aria-label="Business type"><option value="all">All types</option><option>Salon</option><option>Restaurant</option><option>Café</option><option>Clinic</option><option>Retail</option></select></label></div></div>'+
-  '<div class="tw"><table><thead><tr>'+th('name','Client')+th('status','Status')+th('loc','Locations',1)+th('fb','Feedback',1)+th('rating','Rating',1)+'<th>Health</th>'+th('lastActive','Last active')+'<th class="r">MRR</th></tr></thead><tbody id="tb">'+rows()+'</tbody></table></div></section>');
+  '<label class="sel"><select id="ft" aria-label="Business type"><option value="all">All types</option><option>Salon</option><option>Restaurant</option><option>Café</option><option>Clinic</option><option>Retail</option></select></label>'+
+  '<label class="sel"><select id="fag" aria-label="Agency"><option value="all">All agencies</option><option value="Direct">Direct (no agency)</option>'+AG.map(function(a){return '<option>'+esc(a)+'</option>'}).join('')+'</select></label></div></div>'+
+  '<div class="tw"><table><thead><tr>'+th('name','Client')+th('status','Status')+th('agency','Agency')+th('loc','Locations',1)+th('fb','Feedback',1)+th('rating','Rating',1)+'<th>Health</th>'+th('lastActive','Last active')+'<th class="r">MRR</th></tr></thead><tbody id="tb">'+rows()+'</tbody></table></div></section>');
 }
 function vSupport(){
   return gate('<div class="pagehead"><div><h1>Support</h1><p>'+S.tk.length+' open requests from clients.</p></div></div><section class="card"><div class="tk">'+
   (S.tk.length?S.tk.map(function(t){return '<div class="t"><div><b>'+esc(t.s)+'</b><span class="m">'+t.id+' · '+esc(t.c)+' · '+t.age+'</span></div><div style="display:flex;gap:8px;align-items:center"><span class="pri '+t.p+'">'+({high:'High',med:'Medium',low:'Low'})[t.p]+'</span><button class="btn" data-resolve="'+t.id+'">Resolve</button></div></div>'}).join(''):'<div class="state"><b>All caught up</b>No open requests.</div>')+'</div></section>');
 }
+var VLOG=[['Today, 11:20','Neario admin','Spice Route','Support ticket T-104'],['Today, 10:05','Pixel & Co Marketing','The Green House','Monthly report'],['Yesterday, 17:40','Brandwise Digital','Lotus Spa','Reply drafts'],['Yesterday, 12:15','Neario admin','Pure Skin Clinic','Support ticket T-103'],['2 days ago','Lime Street Media','Tress & Co','Weekly check']];
+function agStats(name){
+  var a=CL.filter(function(c){return c.agency===name}),pay=a.filter(function(c){return c.status==='active'||c.status==='past'});
+  return {n:a.length,pay:pay.length,tr:a.filter(function(c){return c.status==='trial'}).length,mrr:pay.reduce(function(t,c){return t+mv(c)},0),fb:a.reduce(function(t,c){return t+c.fb},0),risk:a.filter(function(c){return c.status!=='churned'&&health(c)[2]==='At risk'}).length,inv:a.filter(function(c){return c.login==='Invited'}).length};
+}
+function vAgencies(){
+  var names=AG.concat(['Direct']),st=names.map(agStats);
+  var via=CL.filter(function(c){return c.agency!=='Direct'}).length,mrrVia=st.slice(0,AG.length).reduce(function(t,x){return t+x.mrr},0);
+  return gate('<div class="pagehead"><div><h1>Agencies</h1><p>Agencies that manage client businesses on Neario. Every client pays Neario directly.</p></div></div>'+
+  '<div class="kpis"><div class="card kpi"><span>Agencies</span><b class="num">'+AG.length+'</b><small>Partners using Neario for clients</small></div><div class="card kpi"><span>Clients through agencies</span><b class="num">'+via+'</b><small>of '+CL.length+' total clients</small></div><div class="card kpi"><span>Revenue through agencies</span><b class="num">'+inr(mrrVia)+'</b><small>Monthly, billed to the clients</small></div><div class="card kpi"><span>Direct clients</span><b class="num">'+(CL.length-via)+'</b><small>No agency involved</small></div></div>'+
+  '<section class="card"><div class="ch"><h2>All agencies</h2></div><div class="tw"><table><thead><tr><th>Agency</th><th class="r">Clients</th><th class="r">Paying</th><th class="r">Trials</th><th class="r">Invites open</th><th class="r">At risk</th><th class="r">Feedback</th><th class="r">Monthly revenue</th><th></th></tr></thead><tbody>'+
+  names.map(function(n,i){var x=st[i];return '<tr><td><b>'+(n==='Direct'?'Direct (no agency)':esc(n))+'</b></td><td class="r num">'+x.n+'</td><td class="r num">'+x.pay+'</td><td class="r num">'+x.tr+'</td><td class="r num">'+x.inv+'</td><td class="r num">'+x.risk+'</td><td class="r num">'+x.fb.toLocaleString('en-IN')+'</td><td class="r num">'+inr(x.mrr)+'</td><td class="r"><button class="btn" data-agency="'+esc(n)+'">View clients</button></td></tr>'}).join('')+'</tbody></table></div></section>'+
+  '<section class="card"><div class="ch"><div><h2>View-as log</h2><p style="margin:4px 0 0;color:var(--muted);font-size:13px">Every time someone opens a client’s dashboard, it is recorded. Example entries.</p></div></div><div class="tw"><table><thead><tr><th>When</th><th>Who</th><th>Opened</th><th>Reason</th></tr></thead><tbody>'+VLOG.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td><td>'+esc(r[3])+'</td></tr>'}).join('')+'</tbody></table></div></section>');
+}
 function drawer(c){
   var LB={active:'Active',trial:'Trial',past:'Payment failed',churned:'Churned'};
   return '<div class="dback" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dn"><div style="display:flex;justify-content:flex-end"><button class="iconbtn" data-close aria-label="Close">✕</button></div>'+
   '<span class="st '+c.status+'">'+LB[c.status]+'</span><h2 id="dn">'+esc(c.name)+'</h2><div style="color:var(--muted)">'+esc(c.type)+' · '+esc(c.city)+'</div>'+
-  '<dl class="dl"><dt>Owner email</dt><dd>'+esc(c.email)+'</dd><dt>Joined</dt><dd>'+new Date(c.joined).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'</dd>'+
+  '<dl class="dl"><dt>Owner email</dt><dd>'+esc(c.email)+'</dd><dt>Managed by</dt><dd>'+(c.agency==='Direct'?'Direct (no agency)':esc(c.agency))+'</dd><dt>Client login</dt><dd>'+c.login+'</dd><dt>Joined</dt><dd>'+new Date(c.joined).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+'</dd>'+
   (c.trialEnds?'<dt>Trial ends</dt><dd>'+new Date(c.trialEnds).toLocaleDateString('en-IN',{day:'numeric',month:'short'})+'</dd>':'')+
   '<dt>Plan</dt><dd>'+(c.status==='trial'?'Not on a plan yet':'Growth Plan · '+(c.plan==='yearly'?'Yearly':'Monthly'))+'</dd>'+(c.status==='trial'?'':'<dt>Billing</dt><dd>'+(c.plan==='yearly'?inr(YEAR)+' once a year (3 months free)':inr(PRICE)+' every month')+'</dd>')+'<dt>Locations</dt><dd>'+c.loc+'</dd><dt>TapReview devices</dt><dd>'+c.devices+'</dd><dt>Feedback collected</dt><dd>'+c.fb.toLocaleString('en-IN')+'</dd><dt>Average rating</dt><dd>'+(c.fb?c.rating.toFixed(1)+' ★':'–')+'</dd><dt>Google connected</dt><dd>'+(c.g?'Yes':'No')+'</dd><dt>Last active</dt><dd>'+ago(c.lastActive)+'</dd></dl>'+
-  '<div class="acts"><button class="btn p" data-act="Impersonation opens their dashboard in the full build.">View their dashboard</button><button class="btn" data-act="Reminder email sends from your backend.">Send reminder</button>'+(c.status==='trial'?'<button class="btn" data-act="Trial extension saves to your backend.">Extend trial 7 days</button>':'')+(c.status==='past'?'<button class="btn" data-act="Retry payment runs through your billing provider.">Retry payment</button>':'')+'</div></aside>';
+  '<div class="acts"><button class="btn p" data-act="View as client opens their dashboard with a banner and is written to the view-as log. This needs your backend.">View as client</button><button class="btn" data-act="Reminder email sends from your backend.">Send reminder</button>'+(c.status==='trial'?'<button class="btn" data-act="Trial extension saves to your backend.">Extend trial 7 days</button>':'')+(c.status==='past'?'<button class="btn" data-act="Retry payment runs through your billing provider.">Retry payment</button>':'')+'</div></aside>';
 }
 function render(){
   document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',String(b.dataset.tab===S.tab))});
-  $('#view').innerHTML='<div class="demo" role="note">Prototype with example clients. Figures are generated, not real customers. Monthly plan is ₹599 a month. Yearly is ₹5,391 in one bill for 12 months, counted as about ₹449 a month in MRR. <span style="margin-left:8px;font-weight:600">Quick links: <a href="index.html" style="color:var(--accent-text)">Home</a> · <a href="dashboard.html" style="color:var(--accent-text)">Dashboard</a> · <a href="feedback.html" target="_blank" style="color:var(--accent-text)">Feedback Demo ↗</a> · <a href="onboarding.html" style="color:var(--accent-text)">Setup Wizard</a></span></div>'+(S.tab==='overview'?vOverview():S.tab==='clients'?vClients():vSupport());
-  if(S.tab==='clients'&&S.state==='ready'){$('#fs').value=S.status;$('#ft').value=S.type;upd()}
+  $('#view').innerHTML='<div class="demo" role="note">Prototype with example agencies and clients. Figures are generated, not real customers. Each client pays Neario directly, even when an agency manages them. Monthly plan is ₹599 a month. Yearly is ₹5,391 in one bill for 12 months, counted as about ₹449 a month in MRR. <span style="margin-left:8px;font-weight:600">Quick links: <a href="index.html" style="color:var(--accent-text)">Home</a> · <a href="dashboard.html" style="color:var(--accent-text)">Dashboard</a> · <a href="feedback.html" target="_blank" style="color:var(--accent-text)">Feedback Demo ↗</a> · <a href="onboarding.html" style="color:var(--accent-text)">Setup Wizard</a></span></div>'+(S.tab==='overview'?vOverview():S.tab==='clients'?vClients():S.tab==='agencies'?vAgencies():vSupport());
+  if(S.tab==='clients'&&S.state==='ready'){$('#fs').value=S.status;$('#ft').value=S.type;$('#fag').value=S.ag;upd()}
   $('#layer').innerHTML=S.open?drawer(CL.filter(function(c){return c.id===S.open})[0]):'';
   if(S.open){var d=$('.drawer');d.querySelector('[data-close]').focus()}
 }
@@ -251,6 +269,7 @@ function upd(){$('#tb').innerHTML=rows();$('#cc').textContent=list().length+' of
 /* ---- events ---- */
 document.addEventListener('click',function(e){
   var b=e.target.closest('button,.dback');if(!b)return;var d=b.dataset;
+  if(d.agency){S.ag=d.agency;S.tab='clients';S.state='ready';S.open=null;render();window.scrollTo(0,0);return}
   if(d.tab){S.tab=d.tab;S.state='ready';S.open=null;render();return}
   if(d.range){S.range=+d.range;render();return}
   if(d.state){S.state=d.state;render();if(d.state==='loading')setTimeout(function(){if(S.state==='loading'){S.state='ready';render()}},700);return}
@@ -263,7 +282,7 @@ document.addEventListener('click',function(e){
   if(d.resolve){S.tk=S.tk.filter(function(t){return t.id!==d.resolve});render();toast('Marked as resolved');return}
 });
 document.addEventListener('input',function(e){if(e.target.id==='q'){S.q=e.target.value;upd()}});
-document.addEventListener('change',function(e){if(e.target.id==='fs'){S.status=e.target.value;upd()}if(e.target.id==='ft'){S.type=e.target.value;upd()}});
+document.addEventListener('change',function(e){if(e.target.id==='fs'){S.status=e.target.value;upd()}if(e.target.id==='ft'){S.type=e.target.value;upd()}if(e.target.id==='fag'){S.ag=e.target.value;upd()}});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&S.open){S.open=null;render()}});
 render();
 })();

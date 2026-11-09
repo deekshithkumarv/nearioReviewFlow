@@ -4,7 +4,7 @@ Each file is a complete page. No build step, no dependencies.
 
   index.html       Marketing website (home page)
   feedback.html    Customer feedback page (QR / tap destination)
-  dashboard.html   Business owner dashboard
+  dashboard.html   Business owner dashboard + Agency view (switch at the top)
   onboarding.html  New business setup + plan + QR code
   admin.html       Neario team admin panel (keep private)
   privacy.html     Privacy page (linked from website and feedback page)
@@ -31,6 +31,15 @@ PRICING AND OFFER
   months free, 12 months of use). No GST added. Yearly: full refund within 7 days.
   Search for 5,391 and 599 to change prices. If you register for GST later,
   update index.html, onboarding.html, terms.html and admin.html.
+
+AGENCY MODEL
+  Neario (you, super admin) > Agencies > Client businesses. Direct clients have
+  no agency. Every client has its own login and pays Neario directly. The agency
+  name appears on reports and QR cards next to Neario. admin.html has an Agencies
+  tab and a view-as log.
+  IMPORTANT FOR THE BACKEND: an agency must only ever read data for the
+  businesses assigned to it, never another agency's. Enforce this on the server
+  for every request. Record every "view as client" open in a log.
 
 WHAT IS REAL AND WHAT IS NOT
   All pages are front-end prototypes with example data. Nothing is saved.

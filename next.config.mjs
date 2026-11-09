@@ -7,6 +7,10 @@ export default {
           source: '/dashboard',
           destination: '/dashboard.html',
         },
+        {
+          source: '/dashboard/:path*',
+          destination: '/dashboard.html',
+        },
       ],
     };
   },

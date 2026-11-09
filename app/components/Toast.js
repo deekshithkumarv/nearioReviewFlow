@@ -12,3 +12,4 @@ export function showToast(message) {
     t.remove();
   }, 3400);
 }
+

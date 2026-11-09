@@ -46,3 +46,4 @@ export function Icon({ name, style, className = 'i' }) {
     </svg>
   );
 }
+

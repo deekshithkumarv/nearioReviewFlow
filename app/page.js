@@ -5,13 +5,14 @@ import Link from 'next/link';
 
 export default function HomePage() {
   const [plan, setPlan] = useState('yearly');
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [who, setWho] = useState('owner');
   const [biz, setBiz] = useState('');
   const [eml, setEml] = useState('');
+  const [tel, setTel] = useState('');
   const [cat, setCat] = useState('Salon or spa');
   const [formErr, setFormErr] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const pricingData = {
     monthly: {
@@ -35,9 +36,10 @@ export default function HomePage() {
 
   const curPrice = pricingData[plan];
 
-  function handleFormSubmit(e) {
+  async function handleFormSubmit(e) {
     e.preventDefault();
     setFormErr('');
+
     if (!biz.trim()) {
       setFormErr(who === 'agency' ? 'Enter your agency name.' : 'Enter your business name.');
       return;
@@ -46,12 +48,45 @@ export default function HomePage() {
       setFormErr('Enter a valid email, like name@business.com.');
       return;
     }
-    setFormSuccess(true);
+    if (tel.replace(/\D/g, '').length < 10) {
+      setFormErr('Enter your 10-digit WhatsApp number.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: who,
+          name: biz.trim(),
+          email: eml.trim(),
+          phone: tel.trim(),
+          plan,
+          type: cat,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      }
+
+      setFormSuccess(true);
+      setBiz('');
+      setEml('');
+      setTel('');
+    } catch (err) {
+      setFormErr(err.message || 'Could not submit your details. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <>
-      {/* SVG Symbol Definitions */}
+      {/* SVG Symbols */}
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
         <defs>
           <symbol id="qr" viewBox="0 0 24 24">
@@ -94,7 +129,7 @@ export default function HomePage() {
       {/* Navigation Header */}
       <div className="in">
         <header className="nav">
-          <Link className="brand" href="/" aria-label="Neario ReviewFlow home">
+          <Link className="brand" href="#top" aria-label="Neario ReviewFlow home">
             <span className="mark" aria-hidden="true">N</span>
             <span className="wm">
               <b>neario</b>
@@ -102,156 +137,22 @@ export default function HomePage() {
             </span>
           </Link>
 
-          <nav className="links" aria-label="Main navigation">
+          <nav className="links" aria-label="Page sections">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
             <a href="#honest">Honest reviews</a>
             <a href="#agencies">For agencies</a>
             <a href="#pricing">Pricing</a>
-            <Link href="/dashboard" style={{ color: 'var(--accent-text)', fontWeight: 700 }}>
-              Dashboard <span className="badge sage">Demo</span>
+            <a href="#faq">FAQ</a>
+            <Link className="si" href="/login">
+              Sign in
             </Link>
-            <Link href="/feedback/1">
-              Feedback <span className="badge orange">QR</span>
-            </Link>
-
-            <div className="nav-drop">
-              <button type="button" className="nav-drop-btn" aria-haspopup="true">
-                More Pages ▾
-              </button>
-              <div className="nav-drop-menu" role="menu">
-                <Link href="/onboarding" role="menuitem">
-                  <div>
-                    <b>Setup &amp; QR Wizard</b>
-                    <small>6-step business onboarding</small>
-                  </div>
-                </Link>
-                <Link href="/admin" role="menuitem">
-                  <div>
-                    <b>Admin Console</b>
-                    <small>Operator portal &amp; MRR metrics</small>
-                  </div>
-                </Link>
-                <Link href="/login" role="menuitem">
-                  <div>
-                    <b>Sign In / Log In</b>
-                    <small>Client, Agency &amp; Admin login</small>
-                  </div>
-                </Link>
-                <Link href="/privacy" role="menuitem">
-                  <div>
-                    <b>Privacy Policy</b>
-                    <small>Customer data &amp; phone policy</small>
-                  </div>
-                </Link>
-                <Link href="/terms" role="menuitem">
-                  <div>
-                    <b>Terms of Service</b>
-                    <small>Fair pricing &amp; 7-day refund</small>
-                  </div>
-                </Link>
-              </div>
-            </div>
-
-            <Link className="btn p" href="/onboarding">
-              Start Setup
-            </Link>
+            <a className="btn p" href="#start">
+              Get 3 months free
+            </a>
           </nav>
-
-          <button
-            type="button"
-            className="nav-burger"
-            id="burgerBtn"
-            aria-label="Open navigation menu"
-            aria-expanded={mobileDrawerOpen}
-            onClick={() => setMobileDrawerOpen(true)}
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
         </header>
       </div>
-
-      {/* Mobile Navigation Drawer */}
-      {mobileDrawerOpen && (
-        <div className="mobile-drawer" role="dialog" aria-modal="true">
-          <div
-            className="mobile-drawer-back"
-            onClick={() => setMobileDrawerOpen(false)}
-          />
-          <div className="mobile-drawer-box">
-            <div className="mobile-drawer-head">
-              <div className="brand">
-                <span className="mark" aria-hidden="true">N</span>
-                <span className="wm">
-                  <b>neario</b>
-                  <small>REVIEWFLOW</small>
-                </span>
-              </div>
-              <button
-                type="button"
-                className="mobile-drawer-close"
-                onClick={() => setMobileDrawerOpen(false)}
-                aria-label="Close menu"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mobile-drawer-sec">App Portals &amp; Demos</div>
-            <div className="mobile-drawer-links">
-              <Link href="/dashboard" onClick={() => setMobileDrawerOpen(false)}>
-                <span>📊 Business Dashboard</span>
-                <span className="badge sage">Demo</span>
-              </Link>
-              <Link href="/feedback/1" onClick={() => setMobileDrawerOpen(false)}>
-                <span>📱 Customer Feedback</span>
-                <span className="badge orange">QR Flow</span>
-              </Link>
-              <Link href="/onboarding" onClick={() => setMobileDrawerOpen(false)}>
-                <span>🚀 Setup &amp; QR Wizard</span>
-                <span className="badge green">Setup</span>
-              </Link>
-              <Link href="/admin" onClick={() => setMobileDrawerOpen(false)}>
-                <span>🔐 Admin Console</span>
-                <span className="badge purple">Operator</span>
-              </Link>
-              <Link href="/login" onClick={() => setMobileDrawerOpen(false)}>
-                <span>🔑 Sign In</span>
-                <span className="badge sage">Portal</span>
-              </Link>
-            </div>
-
-            <div className="mobile-drawer-sec">Overview &amp; Marketing</div>
-            <div className="mobile-drawer-links">
-              <a href="#how" onClick={() => setMobileDrawerOpen(false)}>How it works</a>
-              <a href="#features" onClick={() => setMobileDrawerOpen(false)}>Features</a>
-              <a href="#honest" onClick={() => setMobileDrawerOpen(false)}>Honest reviews</a>
-              <a href="#agencies" onClick={() => setMobileDrawerOpen(false)}>For agencies</a>
-              <a href="#pricing" onClick={() => setMobileDrawerOpen(false)}>Pricing</a>
-              <a href="#faq" onClick={() => setMobileDrawerOpen(false)}>FAQ</a>
-            </div>
-
-            <div className="mobile-drawer-sec">Legal &amp; Policy</div>
-            <div className="mobile-drawer-links">
-              <Link href="/privacy" onClick={() => setMobileDrawerOpen(false)}>Privacy Policy</Link>
-              <Link href="/terms" onClick={() => setMobileDrawerOpen(false)}>Terms of Service</Link>
-            </div>
-
-            <div style={{ marginTop: 'auto', paddingTop: 14 }}>
-              <Link
-                className="btn p"
-                href="/onboarding"
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                Start Free Setup
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Main Content Area */}
       <main id="top">
@@ -270,15 +171,12 @@ export default function HomePage() {
               Customers scan a QR code or tap a stand, leave feedback in their own language, and every one of them can also post a Google review. Neario turns what they write into clear next steps.
             </p>
             <div className="cta">
-              <Link className="btn p" href="/onboarding">
-                Start Setup (Free)
-              </Link>
-              <Link className="btn s" href="/dashboard">
-                Explore Dashboard Demo →
-              </Link>
-              <Link className="btn s" href="/feedback/1">
-                Try Feedback Flow
-              </Link>
+              <a className="btn p" href="#start">
+                Get 3 months free
+              </a>
+              <a className="btn s" href="#how">
+                See how it works
+              </a>
             </div>
             <p className="fine">
               Yearly plan: one bill of ₹5,391 covers 12 months. Prefer monthly? It is ₹599 a month.
@@ -314,93 +212,6 @@ export default function HomePage() {
                   <b>Staff behaviour is a strength</b>
                   <span>Customers praised the team</span>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* All Portals & Working Demos */}
-        <section className="sec" style={{ paddingTop: 0, paddingBottom: 30 }}>
-          <div className="in">
-            <div className="portals-box">
-              <div className="portals-head">
-                <div>
-                  <div className="kick" style={{ marginBottom: 6 }}>Working Prototypes</div>
-                  <h2 style={{ fontSize: 'clamp(24px, 3.2vw, 34px)', lineHeight: 1.1 }}>
-                    Explore All 6 Connected Pages
-                  </h2>
-                </div>
-                <p style={{ color: 'var(--muted)', maxWidth: '48ch', margin: 0, fontSize: '14.5px' }}>
-                  Everything in Neario ReviewFlow is ready to explore. Click any card below to open the portal directly.
-                </p>
-              </div>
-
-              <div className="portals-grid">
-                <Link href="/dashboard" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">📊 Business Dashboard</span>
-                    <span className="badge sage">Live Demo</span>
-                  </div>
-                  <p>
-                    Owner cockpit with real-time feedback, AI Growth Radar, rating trends, and Google review approval flow.
-                  </p>
-                  <span className="pcard-act">Open Owner Dashboard →</span>
-                </Link>
-
-                <Link href="/feedback/1" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">📱 Customer Feedback Page</span>
-                    <span className="badge orange">QR / Tap</span>
-                  </div>
-                  <p>
-                    Customer mobile experience after scanning counter QR or tapping NFC stand. Available in English, Hindi, and Kannada.
-                  </p>
-                  <span className="pcard-act">Test Feedback Flow →</span>
-                </Link>
-
-                <Link href="/onboarding" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">🚀 Setup &amp; QR Wizard</span>
-                    <span className="badge green">Onboarding</span>
-                  </div>
-                  <p>
-                    6-step setup configuring business details, services, locations, Google connection, and scannable QR code.
-                  </p>
-                  <span className="pcard-act">Launch Setup Wizard →</span>
-                </Link>
-
-                <Link href="/admin" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">🔐 Neario Admin Console</span>
-                    <span className="badge purple">Operator</span>
-                  </div>
-                  <p>
-                    Internal team console with MRR charts, plan mix, searchable client table with detail drawer, and audit trail.
-                  </p>
-                  <span className="pcard-act">Open Admin Console →</span>
-                </Link>
-
-                <Link href="/privacy" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">📄 Privacy Policy</span>
-                    <span className="badge sage">Compliance</span>
-                  </div>
-                  <p>
-                    Clear disclosure of what customers share, how feedback is handled, and complete data deletion rights.
-                  </p>
-                  <span className="pcard-act">View Privacy Policy →</span>
-                </Link>
-
-                <Link href="/terms" className="pcard">
-                  <div className="pcard-top">
-                    <span className="pcard-title">📜 Terms of Service</span>
-                    <span className="badge sage">Terms</span>
-                  </div>
-                  <p>
-                    Transparent terms of use, simple billing rules, 7-day refund guarantee, and anti-review-gating pledge.
-                  </p>
-                  <span className="pcard-act">View Terms of Service →</span>
-                </Link>
               </div>
             </div>
           </div>
@@ -454,9 +265,7 @@ export default function HomePage() {
               <div className="f">
                 <svg><use href="#radar" /></svg>
                 <h3>AI Business Growth Radar</h3>
-                <p>
-                  Complaints, praise and recurring themes from real feedback, each with the number of entries behind it.
-                </p>
+                <p>Complaints, praise and recurring themes from real feedback, each with the number of entries behind it.</p>
               </div>
               <div className="f">
                 <svg><use href="#trend" /></svg>
@@ -482,7 +291,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Honest Reviews Green Band */}
+        {/* Honest Reviews Band */}
         <section className="sec" id="honest" style={{ paddingTop: 20 }}>
           <div className="in">
             <div className="band">
@@ -520,7 +329,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Dineout Planned Section */}
+        {/* Planned with Neario Dineout */}
         <section className="sec" id="dineout" style={{ paddingTop: 20 }}>
           <div className="in">
             <div className="dine">
@@ -541,7 +350,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* For Agencies Section */}
+        {/* For Agencies */}
         <section className="sec" id="agencies" style={{ paddingTop: 20 }}>
           <div className="in">
             <div className="dine">
@@ -571,15 +380,14 @@ export default function HomePage() {
           <div className="in">
             <div className="head" style={{ alignItems: 'center', textAlign: 'center' }}>
               <h2 style={{ maxWidth: 'none' }}>Two ways to pay</h2>
-              <p>
-                Everything is included either way. Choose monthly, or pay once for the year and get 3 months free.
-              </p>
+              <p>Everything is included either way. Choose monthly, or pay once for the year and get 3 months free.</p>
             </div>
 
             <div className="seg" role="radiogroup" aria-label="Billing">
               <button
                 type="button"
                 role="radio"
+                id="pm"
                 aria-checked={plan === 'monthly'}
                 onClick={() => setPlan('monthly')}
               >
@@ -588,6 +396,7 @@ export default function HomePage() {
               <button
                 type="button"
                 role="radio"
+                id="py"
                 aria-checked={plan === 'yearly'}
                 onClick={() => setPlan('yearly')}
               >
@@ -596,21 +405,21 @@ export default function HomePage() {
             </div>
 
             <div className="price">
-              {plan === 'yearly' && (
-                <div className="ribbon">First 3 months free</div>
-              )}
+              {plan === 'yearly' && <div className="ribbon" id="pr">First 3 months free</div>}
               <div>
                 <div className="kick" style={{ margin: 0 }}>
-                  Growth Plan · <span>{curPrice.n}</span>
+                  Growth Plan · <span id="pn">{curPrice.n}</span>
                 </div>
                 <div className="amt">
-                  <b>{curPrice.a}</b>
-                  {plan === 'yearly' && (
-                    <s aria-label="instead of ₹7,188">{curPrice.s}</s>
+                  <b id="pa">{curPrice.a}</b>
+                  {curPrice.s && (
+                    <s id="ps" aria-label={`instead of ${curPrice.s}`}>
+                      {curPrice.s}
+                    </s>
                   )}
-                  <span>{curPrice.u}</span>
+                  <span id="pu">{curPrice.u}</span>
                 </div>
-                <p className="pdesc">{curPrice.d}</p>
+                <p id="pd" className="pdesc">{curPrice.d}</p>
               </div>
 
               <ul>
@@ -636,10 +445,10 @@ export default function HomePage() {
                 </li>
               </ul>
 
-              <a className="btn p" href="#start">
+              <a className="btn p" id="pc" href="#start">
                 {curPrice.c}
               </a>
-              <p className="pnote">{curPrice.note}</p>
+              <p className="pnote" id="pnote">{curPrice.note}</p>
             </div>
           </div>
         </section>
@@ -695,7 +504,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Start Sign-Up Form Section */}
+        {/* Start Collecting Honest Feedback Today */}
         <section className="sec" id="start" style={{ paddingTop: 20 }}>
           <div className="in">
             <div className="signup">
@@ -704,29 +513,24 @@ export default function HomePage() {
                 <p>Tell us about your business and we will set up your workspace.</p>
               </div>
 
-              <form onSubmit={handleFormSubmit} noValidate>
+              <form id="f" noValidate onSubmit={handleFormSubmit}>
                 <label htmlFor="who">
                   I am a
-                  <select
-                    id="who"
-                    value={who}
-                    onChange={(e) => setWho(e.target.value)}
-                  >
+                  <select id="who" value={who} onChange={(e) => setWho(e.target.value)}>
                     <option value="owner">Business owner</option>
                     <option value="agency">Agency managing clients</option>
                   </select>
                 </label>
 
-                <label htmlFor="biz">
+                <label htmlFor="biz" id="bizl">
                   {who === 'agency' ? 'Agency name' : 'Business name'}
                   <input
                     id="biz"
                     name="biz"
-                    type="text"
                     autoComplete="organization"
+                    required
                     value={biz}
                     onChange={(e) => setBiz(e.target.value)}
-                    required
                   />
                 </label>
 
@@ -737,19 +541,30 @@ export default function HomePage() {
                     name="eml"
                     type="email"
                     autoComplete="email"
+                    required
                     value={eml}
                     onChange={(e) => setEml(e.target.value)}
-                    required
                   />
                 </label>
 
-                <label htmlFor="plan-select">
+                <label htmlFor="tel">
+                  WhatsApp number
+                  <input
+                    id="tel"
+                    name="tel"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="10-digit mobile number"
+                    required
+                    value={tel}
+                    onChange={(e) => setTel(e.target.value)}
+                  />
+                </label>
+
+                <label htmlFor="plan">
                   Plan
-                  <select
-                    id="plan-select"
-                    value={plan}
-                    onChange={(e) => setPlan(e.target.value)}
-                  >
+                  <select id="plan" value={plan} onChange={(e) => setPlan(e.target.value)}>
                     <option value="yearly">Yearly · first 3 months free · ₹5,391</option>
                     <option value="monthly">Monthly · ₹599 per month</option>
                   </select>
@@ -757,11 +572,7 @@ export default function HomePage() {
 
                 <label htmlFor="cat">
                   Type of business
-                  <select
-                    id="cat"
-                    value={cat}
-                    onChange={(e) => setCat(e.target.value)}
-                  >
+                  <select id="cat" value={cat} onChange={(e) => setCat(e.target.value)}>
                     <option>Salon or spa</option>
                     <option>Restaurant or café</option>
                     <option>Clinic</option>
@@ -771,32 +582,23 @@ export default function HomePage() {
                 </label>
 
                 {formErr && (
-                  <div
-                    style={{ color: 'var(--red, #c8442f)', fontSize: 14, fontWeight: 600 }}
-                    role="alert"
-                  >
+                  <div id="err" style={{ color: 'var(--red, #c8442f)', fontSize: 14, fontWeight: 600 }} role="alert">
                     {formErr}
                   </div>
                 )}
 
-                <button className="btn p" type="submit" style={{ justifyContent: 'center' }}>
-                  Get started
+                <button
+                  className="btn p"
+                  type="submit"
+                  disabled={submitting}
+                  style={{ justifyContent: 'center' }}
+                >
+                  {submitting ? 'Submitting...' : 'Get started'}
                 </button>
 
                 {formSuccess && (
-                  <div className="ok" role="status">
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      <span>
-                        Thanks! We are ready to set up <b>{biz}</b>.
-                      </span>
-                      <Link
-                        className="btn p"
-                        href="/onboarding"
-                        style={{ fontSize: 14, padding: '10px 16px', width: 'max-content', textDecoration: 'none' }}
-                      >
-                        Continue to Setup Wizard →
-                      </Link>
-                    </div>
+                  <div className="ok" id="ok" role="status">
+                    Thanks! We have your details. We will message you on WhatsApp within one working day with your sign-in link.
                   </div>
                 )}
               </form>
@@ -805,66 +607,24 @@ export default function HomePage() {
         </section>
       </main>
 
-      {/* Footer */}
+      {/* Clean Footer */}
       <footer>
-        <div className="in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '32px 24px' }}>
+        <div className="in">
           <div>
-            <div className="brand" style={{ marginBottom: 12 }}>
-              <span className="mark" aria-hidden="true">N</span>
-              <span className="wm">
-                <b>neario</b>
-                <small>REVIEWFLOW</small>
-              </span>
-            </div>
-            <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: '13.5px', maxWidth: '32ch' }}>
-              Honest customer feedback and Google review growth for local businesses.
-            </p>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              © 2026 Neario ReviewFlow. All rights reserved.
-            </div>
+            <b style={{ color: 'var(--fg)' }}>Neario ReviewFlow</b>
+            <br />
+            Feedback and review management for local businesses.
           </div>
-
-          <div>
-            <b style={{ color: 'var(--fg)', display: 'block', marginBottom: 12, fontSize: 14 }}>Product</b>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '13.5px' }} aria-label="Product navigation">
-              <a href="#how" style={{ textDecoration: 'none', color: 'var(--muted)' }}>How it works</a>
-              <a href="#features" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Features</a>
-              <a href="#honest" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Honest reviews</a>
-              <a href="#agencies" style={{ textDecoration: 'none', color: 'var(--muted)' }}>For agencies</a>
-              <a href="#pricing" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Pricing &amp; offer</a>
-              <a href="#faq" style={{ textDecoration: 'none', color: 'var(--muted)' }}>FAQ</a>
-            </nav>
-          </div>
-
-          <div>
-            <b style={{ color: 'var(--fg)', display: 'block', marginBottom: 12, fontSize: 14 }}>Portals &amp; Demos</b>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '13.5px' }} aria-label="Portals navigation">
-              <Link href="/dashboard" style={{ textDecoration: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Owner Dashboard <span className="badge sage" style={{ fontSize: '9.5px' }}>Demo</span>
-              </Link>
-              <Link href="/feedback/1" style={{ textDecoration: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Customer Feedback <span className="badge orange" style={{ fontSize: '9.5px' }}>QR</span>
-              </Link>
-              <Link href="/onboarding" style={{ textDecoration: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Setup &amp; QR Wizard <span className="badge green" style={{ fontSize: '9.5px' }}>Setup</span>
-              </Link>
-              <Link href="/admin" style={{ textDecoration: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Neario Admin Console <span className="badge purple" style={{ fontSize: '9.5px' }}>Team</span>
-              </Link>
-              <Link href="/login" style={{ textDecoration: 'none', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Sign In / Login <span className="badge sage" style={{ fontSize: '9.5px' }}>Auth</span>
-              </Link>
-            </nav>
-          </div>
-
-          <div>
-            <b style={{ color: 'var(--fg)', display: 'block', marginBottom: 12, fontSize: 14 }}>Legal &amp; Policy</b>
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '13.5px' }} aria-label="Legal navigation">
-              <Link href="/privacy" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Privacy Policy</Link>
-              <Link href="/terms" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Terms of Service</Link>
-              <a href="#start" style={{ textDecoration: 'none', color: 'var(--muted)' }}>Contact &amp; Sign up</a>
-            </nav>
-          </div>
+          <nav aria-label="Footer">
+            <a href="#how">How it works</a>
+            <a href="#agencies">For agencies</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#faq">FAQ</a>
+            <a href="#start">Sign up</a>
+            <Link href="/login">Sign in</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+          </nav>
         </div>
       </footer>
     </>

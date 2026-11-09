@@ -159,10 +159,10 @@ export default function HomePage() {
             <a href="#features">Features</a>
             <a href="#agencies">For agencies</a>
             <a href="#pricing">Pricing</a>
-            <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <a href="/dashboard.html" style={{ display: 'inline-flex', alignItems: 'center' }}>
               Dashboard
               <span className="nav-badge demo">DEMO</span>
-            </Link>
+            </a>
             <Link className="si" href="/login">
               Sign in
             </Link>
@@ -255,10 +255,10 @@ export default function HomePage() {
 
             <div className="mobile-drawer-sec">Portals & Demo</div>
             <nav className="mobile-drawer-links" aria-label="Mobile portals">
-              <Link href="/dashboard" onClick={closeMobileMenu}>
+              <a href="/dashboard.html" onClick={closeMobileMenu}>
                 <span>Dashboard Demo</span>
                 <span className="badge green">Demo</span>
-              </Link>
+              </a>
               <Link href="/feedback/demo-cafe-1" onClick={closeMobileMenu}>
                 <span>Customer Feedback QR</span>
                 <span className="badge orange">Try QR</span>

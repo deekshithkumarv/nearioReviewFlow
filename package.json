@@ -1,0 +1,21 @@
+{
+  "name": "neario-reviewflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "migrate": "node --env-file=.env scripts/migrate.js",
+    "seed": "node --env-file=.env scripts/seed.js",
+    "test:integration": "node --env-file=.env scripts/verify-integration.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "pg": "^8.11.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

@@ -157,10 +157,12 @@ export default function HomePage() {
           <nav className="links desktop-links" aria-label="Page sections">
             <a href="#how">How it works</a>
             <a href="#features">Features</a>
-            <a href="#honest">Honest reviews</a>
             <a href="#agencies">For agencies</a>
             <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
+            <Link href="/dashboard" style={{ display: 'inline-flex', alignItems: 'center' }}>
+              Dashboard
+              <span className="nav-badge demo">DEMO</span>
+            </Link>
             <Link className="si" href="/login">
               Sign in
             </Link>
@@ -237,10 +239,6 @@ export default function HomePage() {
                 <span>Features</span>
                 <span aria-hidden="true">→</span>
               </a>
-              <a href="#honest" onClick={closeMobileMenu}>
-                <span>Honest reviews</span>
-                <span aria-hidden="true">→</span>
-              </a>
               <a href="#agencies" onClick={closeMobileMenu}>
                 <span>For agencies</span>
                 <span aria-hidden="true">→</span>
@@ -255,15 +253,19 @@ export default function HomePage() {
               </a>
             </nav>
 
-            <div className="mobile-drawer-sec">Portals & Access</div>
+            <div className="mobile-drawer-sec">Portals & Demo</div>
             <nav className="mobile-drawer-links" aria-label="Mobile portals">
               <Link href="/dashboard" onClick={closeMobileMenu}>
-                <span>Business Dashboard</span>
-                <span className="badge green">Live</span>
+                <span>Dashboard Demo</span>
+                <span className="badge green">Demo</span>
               </Link>
               <Link href="/feedback/demo-cafe-1" onClick={closeMobileMenu}>
                 <span>Customer Feedback QR</span>
                 <span className="badge orange">Try QR</span>
+              </Link>
+              <Link href="/login" onClick={closeMobileMenu}>
+                <span>Client & Agency Sign In</span>
+                <span aria-hidden="true">→</span>
               </Link>
               <Link href="/onboarding" onClick={closeMobileMenu}>
                 <span>Setup & QR Wizard</span>

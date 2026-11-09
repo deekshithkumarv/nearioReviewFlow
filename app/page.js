@@ -169,6 +169,9 @@ export default function HomePage() {
 
           {/* Mobile Navigation Toggle */}
           <div className="mobile-nav-toggle">
+            <Link className="mobile-si" href="/login">
+              Sign in
+            </Link>
             <a className="btn p btn-sm mobile-cta" href="#start">
               3 months free
             </a>

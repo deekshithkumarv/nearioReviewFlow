@@ -338,8 +338,23 @@ h1, h2, h3 {
 .mobile-nav-toggle {
   display: none;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
+}
+.mobile-si {
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--fg);
+  padding: 6px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+.mobile-si:hover {
+  background: var(--surface-2);
+  color: var(--accent-text);
 }
 
 /* Dropdown Menu */
@@ -1297,9 +1312,18 @@ footer nav {
   }
 }
 
-@media (max-width: 400px) {
-  .mobile-nav-toggle .mobile-cta {
-    display: none;
+@media (max-width: 430px) {
+  .mobile-cta {
+    padding: 7px 11px;
+    font-size: 12.5px;
+  }
+  .mobile-si {
+    padding: 5px 6px;
+    font-size: 13px;
+  }
+  .nav-burger {
+    width: 38px;
+    height: 38px;
   }
   .brand .mark {
     width: 34px;
@@ -1320,6 +1344,12 @@ footer nav {
   .promo {
     font-size: 13px;
     padding-inline: 10px;
+  }
+}
+
+@media (max-width: 340px) {
+  .mobile-nav-toggle .mobile-cta {
+    display: none;
   }
 }
 

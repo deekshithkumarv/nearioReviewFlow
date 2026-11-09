@@ -164,7 +164,7 @@ export default function AdminPage() {
   const totalMrr = businesses.reduce((acc, b) => acc + (b.plan === 'yearly' ? 449 : 599), 0);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--fg)', display: 'flex', flexDirection: 'column' }}>
+    <div className="admin-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--fg)', display: 'flex', flexDirection: 'column' }}>
       {/* Top Bar */}
       <header className="bar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: '12px 20px', position: 'sticky', top: 0, zIndex: 40 }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>

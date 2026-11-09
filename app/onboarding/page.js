@@ -108,7 +108,7 @@ export default function OnboardingPage() {
   }, [step, d.biz]);
 
   return (
-    <div style={{ minHeight: '100vh', padding: '20px 16px 40px', background: 'var(--bg)' }}>
+    <div className="onboarding-page" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <div className="wrap" style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
           <Link href="/" className="brand" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 10 }}>

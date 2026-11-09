@@ -264,7 +264,7 @@ export default function HomePage() {
             </a>
             <div className="kick">Feedback and Google reviews for local businesses</div>
             <h1>
-              Hear every customer. <em>Grow from what they say.</em>
+              Hear every customer. <em>Grow</em> from what they say.
             </h1>
             <p className="lead">
               Customers scan a QR code or tap a stand, leave feedback in their own language, and every one of them can also post a Google review. Neario turns what they write into clear next steps.

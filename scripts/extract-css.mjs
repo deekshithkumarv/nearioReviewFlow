@@ -67,3 +67,4 @@ out += `
 
 fs.writeFileSync('app/globals.css', out, 'utf8');
 console.log('globals.css written successfully. Size:', out.length, 'bytes');
+

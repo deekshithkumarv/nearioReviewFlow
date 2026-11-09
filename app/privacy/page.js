@@ -7,11 +7,11 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div style={{ padding: '24px 16px 56px', minHeight: '100vh', background: 'var(--bg)' }}>
-      <main style={{ maxWidth: 720, margin: '0 auto' }}>
-        <div className="top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 28, flexWrap: 'wrap' }}>
-          <Link href="/" className="brand" style={{ display: 'flex', gap: 10, alignItems: 'center', textDecoration: 'none', color: 'var(--fg)', fontWeight: 800, fontSize: 20 }}>
-            <span className="mark" style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--primary)', color: '#fff', display: 'grid', placeItems: 'center' }}>N</span>
+    <div className="legal-page">
+      <main>
+        <div className="top">
+          <Link href="/" className="brand">
+            <span className="mark">N</span>
             neario
           </Link>
           <div style={{ display: 'flex', gap: 14, alignItems: 'center', fontSize: 14.5, fontWeight: 600 }}>
@@ -21,8 +21,8 @@ export default function PrivacyPage() {
           </div>
         </div>
 
-        <h1 style={{ fontSize: 'clamp(30px,5vw,42px)', letterSpacing: '-.04em', lineHeight: 1.1, margin: '0 0 8px' }}>Privacy</h1>
-        <p className="upd" style={{ color: 'var(--muted)', fontSize: 14, margin: '0 0 24px' }}>Last updated: 5 November 2026</p>
+        <h1>Privacy</h1>
+        <p className="upd">Last updated: 5 November 2026</p>
         <p>Neario ReviewFlow helps local businesses collect feedback from their customers. This page explains what we collect, why, and how you can have it removed.</p>
 
         <h2 style={{ fontSize: 20, letterSpacing: '-.02em', margin: '32px 0 8px' }}>Two kinds of people</h2>

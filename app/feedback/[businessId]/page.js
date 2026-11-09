@@ -167,7 +167,7 @@ export default function FeedbackPage({ params }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '20px 16px 40px' }}>
+    <div className="feedback-page" style={{ minHeight: '100vh', background: 'var(--bg)', padding: '20px 16px 40px' }}>
       <div className="wrap" style={{ maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 13 }}>
           <Link href="/" style={{ textDecoration: 'none', fontWeight: 700, color: 'var(--muted)' }}>← Neario Home</Link>

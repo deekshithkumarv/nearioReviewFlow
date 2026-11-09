@@ -70,3 +70,37 @@ CREATE TABLE IF NOT EXISTS view_log (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS view_log_business_idx ON view_log(business_id, created_at DESC);
+
+-- Sign-ups from the public website. A lead is only a request: it has no login and sees nothing
+-- until Neario's super admin converts it into a business (or agency) and sends the invite.
+CREATE TABLE IF NOT EXISTS leads (
+  id             bigserial PRIMARY KEY,
+  kind           text NOT NULL CHECK (kind IN ('owner','agency')),
+  business_name  text NOT NULL,
+  email          text NOT NULL,
+  phone          text,
+  plan           text NOT NULL DEFAULT 'yearly' CHECK (plan IN ('monthly','yearly')),
+  business_type  text,
+  status         text NOT NULL DEFAULT 'new' CHECK (status IN ('new','converted','dismissed')),
+  business_id    bigint REFERENCES businesses(id),
+  agency_id      bigint REFERENCES agencies(id),
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS leads_status_idx ON leads(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS leads_email_idx ON leads(lower(email), created_at DESC);
+
+-- Feedback page: each business can have one Google review link (the same link is shown to every customer),
+-- and feedback can carry the service, quick tags, and a phone number only when the customer agreed to be contacted.
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS google_review_url text;
+ALTER TABLE feedback   ADD COLUMN IF NOT EXISTS service text;
+ALTER TABLE feedback   ADD COLUMN IF NOT EXISTS tags jsonb;
+ALTER TABLE feedback   ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE feedback   ADD COLUMN IF NOT EXISTS contact_ok boolean NOT NULL DEFAULT false;
+ALTER TABLE feedback   ADD COLUMN IF NOT EXISTS lang text;
+
+-- Onboarding: services the customer can pick on the feedback page, and when setup was finished.
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS services jsonb;
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS onboarded_at timestamptz;
+-- Businesses that were already in use before onboarding existed should not be sent through it.
+UPDATE businesses b SET onboarded_at = now()
+ WHERE onboarded_at IS NULL AND (google_review_url IS NOT NULL OR EXISTS (SELECT 1 FROM feedback f WHERE f.business_id = b.id));

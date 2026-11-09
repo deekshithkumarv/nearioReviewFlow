@@ -17,14 +17,17 @@ const SUGG = {
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [bizId, setBizId] = useState(null);
   const [d, setD] = useState({
     biz: '',
     cat: 'Salon or spa',
     owner: '',
     email: '',
+    city: '',
     svc: ['Haircut', 'Facial', 'Hair Spa'],
     locs: [{ n: '', a: '' }],
     g: false,
+    gurl: '',
     placeId: '',
     size: 'A5',
     plan: 'yearly',
@@ -32,6 +35,46 @@ export default function OnboardingPage() {
   const [newSvc, setNewSvc] = useState('');
   const [errs, setErrs] = useState({});
   const qrCanvasRef = useRef(null);
+
+  useEffect(() => {
+    async function loadBiz() {
+      try {
+        const meRes = await fetch('/api/me');
+        if (!meRes.ok) {
+          router.push('/login');
+          return;
+        }
+        const meData = await meRes.json();
+        if (meData.user?.role === 'super_admin') {
+          router.push('/admin');
+          return;
+        }
+        const bRes = await fetch('/api/businesses');
+        if (bRes.ok) {
+          const bData = await bRes.json();
+          const first = bData.businesses?.[0];
+          if (first) {
+            setBizId(first.id);
+            setD((prev) => ({
+              ...prev,
+              biz: first.name || '',
+              cat: first.type || 'Salon or spa',
+              owner: meData.user.name || '',
+              email: meData.user.email || '',
+              city: first.city || '',
+              gurl: first.google_review_url || '',
+              svc: Array.isArray(first.services) && first.services.length > 0
+                ? first.services
+                : prev.svc,
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Onboarding init error:', err);
+      }
+    }
+    loadBiz();
+  }, [router]);
 
   function slug(s) {
     return (s || 'your-business').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'your-business';
@@ -54,10 +97,60 @@ export default function OnboardingPage() {
     return Object.keys(e).length === 0;
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (!validate()) return;
+    if (bizId) {
+      if (step === 0) {
+        fetch(`/api/businesses/${bizId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: d.biz.trim(), type: d.cat, city: d.city?.trim() || null }),
+        }).catch(console.error);
+      } else if (step === 1) {
+        fetch(`/api/businesses/${bizId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ services: d.svc }),
+        }).catch(console.error);
+      } else if (step === 3 && d.gurl) {
+        fetch(`/api/businesses/${bizId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ googleReviewUrl: d.gurl.trim() }),
+        }).catch(console.error);
+      }
+    }
     setStep((s) => s + 1);
     window.scrollTo(0, 0);
+  }
+
+  async function handleFinish() {
+    if (bizId) {
+      await fetch(`/api/businesses/${bizId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          onboarded: true,
+          name: d.biz.trim(),
+          type: d.cat,
+          services: d.svc,
+          googleReviewUrl: d.gurl?.trim() || null,
+        }),
+      }).catch(console.error);
+    }
+    showToast('Setup complete! Welcome to your dashboard.');
+    router.push('/dashboard');
+  }
+
+  async function handleSkipLater() {
+    if (bizId) {
+      await fetch(`/api/businesses/${bizId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ onboarded: true }),
+      }).catch(console.error);
+    }
+    router.push('/dashboard');
   }
 
   function handleBack() {
@@ -136,6 +229,12 @@ export default function OnboardingPage() {
               <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}. {s}</span>
             </div>
           ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-6px 0 0' }}>
+          <button type="button" className="btn s" onClick={handleSkipLater} style={{ fontSize: 13, padding: '6px 14px' }}>
+            Set up later
+          </button>
         </div>
 
         <section className="card" style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 24, boxShadow: 'var(--shadow)', padding: 'clamp(20px, 4vw, 32px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -435,9 +534,9 @@ export default function OnboardingPage() {
 
               <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
                 <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <Link href="/dashboard" className="btn p" style={{ textDecoration: 'none' }}>
+                <button type="button" className="btn p" onClick={handleFinish}>
                   Open Dashboard →
-                </Link>
+                </button>
               </div>
             </>
           )}

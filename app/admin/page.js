@@ -18,7 +18,9 @@ export default function AdminPage() {
   const [businesses, setBusinesses] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [viewLogs, setViewLogs] = useState([]);
+  const [leads, setLeads] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [inviteModal, setInviteModal] = useState(null);
 
   // New Agency Modal State
   const [newAgModal, setNewAgModal] = useState(false);
@@ -53,11 +55,12 @@ export default function AdminPage() {
         }
         setUser(meData.user);
 
-        // Fetch businesses, agencies, and view-log in parallel
-        const [bizRes, agRes, logRes] = await Promise.all([
+        // Fetch businesses, agencies, view-log, and leads in parallel
+        const [bizRes, agRes, logRes, leadRes] = await Promise.all([
           fetch('/api/businesses'),
           fetch('/api/agencies'),
           fetch('/api/view-log'),
+          fetch('/api/leads'),
         ]);
 
         if (bizRes.ok) {
@@ -72,6 +75,10 @@ export default function AdminPage() {
           const lData = await logRes.json();
           setViewLogs(lData.log || []);
         }
+        if (leadRes.ok) {
+          const ldData = await leadRes.json();
+          setLeads(ldData.leads || []);
+        }
       } catch (err) {
         console.error('Error loading admin data:', err);
       } finally {
@@ -80,6 +87,79 @@ export default function AdminPage() {
     }
     loadData();
   }, [router]);
+
+  async function refreshData() {
+    try {
+      const [bizRes, agRes, logRes, leadRes] = await Promise.all([
+        fetch('/api/businesses'),
+        fetch('/api/agencies'),
+        fetch('/api/view-log'),
+        fetch('/api/leads'),
+      ]);
+      if (bizRes.ok) setBusinesses((await bizRes.json()).businesses || []);
+      if (agRes.ok) setAgencies((await agRes.json()).agencies || []);
+      if (logRes.ok) setViewLogs((await logRes.json()).log || []);
+      if (leadRes.ok) setLeads((await leadRes.json()).leads || []);
+    } catch (err) {
+      console.error('Error refreshing data:', err);
+    }
+  }
+
+  async function handleConvertLead(leadId) {
+    try {
+      const res = await fetch(`/api/leads/${leadId}/convert`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to convert lead');
+        return;
+      }
+      showToast(`Account created for ${data.name}!`);
+      const link = `${window.location.origin}/accept?token=${data.inviteToken}`;
+      const waMsg = encodeURIComponent(
+        `Hi! Here is your Neario ReviewFlow sign-in link: ${link}`
+      );
+      const waUrl = data.phone ? `https://wa.me/${data.phone}?text=${waMsg}` : '';
+      setInviteModal({ title: `Invite for ${data.name}`, link, waUrl });
+      refreshData();
+    } catch (err) {
+      showToast('Error converting lead.');
+    }
+  }
+
+  async function handleDismissLead(leadId) {
+    if (!confirm('Dismiss this website sign-up?')) return;
+    try {
+      const res = await fetch(`/api/leads/${leadId}/dismiss`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || 'Failed to dismiss lead');
+        return;
+      }
+      showToast('Lead dismissed');
+      refreshData();
+    } catch (err) {
+      showToast('Error dismissing lead.');
+    }
+  }
+
+  async function handleUpdatePayStatus(bizId, newStatus) {
+    try {
+      const res = await fetch(`/api/businesses/${bizId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payStatus: newStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        showToast(data.error || 'Failed to update payment status');
+        return;
+      }
+      showToast(`Payment status updated to ${newStatus}`);
+      refreshData();
+    } catch (err) {
+      showToast('Error updating status.');
+    }
+  }
 
   async function handleCreateAgency(e) {
     e.preventDefault();
@@ -178,11 +258,17 @@ export default function AdminPage() {
             </Link>
 
             <div className="tabs" style={{ display: 'flex', gap: 4, background: 'var(--surface-2)', padding: 3, borderRadius: 10 }}>
-              {['overview', 'clients', 'agencies', 'support'].map((t) => (
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'leads', label: `Sign-ups (${leads.filter((l) => l.status === 'new').length})` },
+                { id: 'clients', label: 'Clients' },
+                { id: 'agencies', label: 'Agencies' },
+                { id: 'audit', label: 'Audit Log' },
+              ].map((t) => (
                 <button
-                  key={t}
+                  key={t.id}
                   type="button"
-                  onClick={() => setTab(t)}
+                  onClick={() => setTab(t.id)}
                   style={{
                     border: 0,
                     padding: '6px 14px',
@@ -190,11 +276,11 @@ export default function AdminPage() {
                     fontWeight: 700,
                     fontSize: 13,
                     cursor: 'pointer',
-                    background: tab === t ? 'var(--surface)' : 'transparent',
-                    color: tab === t ? 'var(--fg)' : 'var(--muted)',
+                    background: tab === t.id ? 'var(--surface)' : 'transparent',
+                    color: tab === t.id ? 'var(--fg)' : 'var(--muted)',
                   }}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {t.label}
                 </button>
               ))}
             </div>
@@ -263,6 +349,40 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Needs Attention */}
+            <div className="card" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 16 }}>Needs Attention</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {leads.filter((l) => l.status === 'new').length > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', padding: '12px 14px', borderRadius: 12 }}>
+                    <div>
+                      <b>{leads.filter((l) => l.status === 'new').length} new sign-up(s) from website</b>
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>Create their account and send WhatsApp invite link.</div>
+                    </div>
+                    <button type="button" className="btn p" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => setTab('leads')}>
+                      Review Sign-ups →
+                    </button>
+                  </div>
+                )}
+                {businesses.filter((b) => b.pay_status === 'past_due' || b.pay_status === 'awaiting_payment').slice(0, 3).map((b) => (
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)', padding: '10px 14px', borderRadius: 12 }}>
+                    <div>
+                      <b>{b.name}</b>
+                      <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                        {b.pay_status === 'past_due' ? 'Payment failed. Plan on hold.' : 'Invited · Payment awaiting.'}
+                      </div>
+                    </div>
+                    <button type="button" className="btn s" style={{ fontSize: 12, padding: '5px 12px' }} onClick={() => setSelectedClient(b)}>
+                      Inspect
+                    </button>
+                  </div>
+                ))}
+                {leads.filter((l) => l.status === 'new').length === 0 && businesses.filter((b) => b.pay_status === 'past_due').length === 0 && (
+                  <div style={{ color: 'var(--muted)', fontSize: 13.5 }}>✓ All clear! No pending sign-ups or failed payments.</div>
+                )}
+              </div>
+            </div>
+
             {/* Quick Actions Card */}
             <div className="card" style={{ padding: 24, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
               <div>
@@ -308,6 +428,17 @@ export default function AdminPage() {
                   <option key={a.id} value={a.name}>{a.name}</option>
                 ))}
               </select>
+              <select
+                value={fStatus}
+                onChange={(e) => setFStatus(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-2)' }}
+              >
+                <option value="all">All statuses</option>
+                <option value="paid">Paid</option>
+                <option value="awaiting_payment">Awaiting payment</option>
+                <option value="past_due">Payment failed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
 
             {/* Client Table */}
@@ -319,9 +450,9 @@ export default function AdminPage() {
                       <th style={{ padding: '12px 16px' }}>Business</th>
                       <th style={{ padding: '12px 16px' }}>Type</th>
                       <th style={{ padding: '12px 16px' }}>Agency Partner</th>
-                      <th style={{ padding: '12px 16px' }}>City</th>
+                      <th style={{ padding: '12px 16px' }}>Feedback</th>
                       <th style={{ padding: '12px 16px' }}>Plan</th>
-                      <th style={{ padding: '12px 16px' }}>Payment</th>
+                      <th style={{ padding: '12px 16px' }}>Payment Status</th>
                       <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
@@ -335,30 +466,171 @@ export default function AdminPage() {
                     ) : (
                       clientsFiltered.map((c) => (
                         <tr key={c.id} style={{ borderBottom: '1px solid var(--line)' }}>
-                          <td style={{ padding: '12px 16px', fontWeight: 700 }}>{c.name}</td>
-                          <td style={{ padding: '12px 16px' }}>{c.type}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <div style={{ fontWeight: 700 }}>{c.name}</div>
+                            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{c.city || '–'}</div>
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>{c.type || 'Other'}</td>
                           <td style={{ padding: '12px 16px' }}>
                             {c.agency_name ? <span style={{ fontWeight: 600 }}>{c.agency_name}</span> : <span style={{ color: 'var(--muted)' }}>Direct</span>}
                           </td>
-                          <td style={{ padding: '12px 16px', color: 'var(--muted)' }}>{c.city || '–'}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span>{c.feedback_count || 0} reviews</span>
+                            {c.avg_rating ? <span style={{ marginLeft: 6, color: '#f59e0b', fontWeight: 600 }}>({Number(c.avg_rating).toFixed(1)} ★)</span> : null}
+                          </td>
                           <td style={{ padding: '12px 16px', textTransform: 'capitalize' }}>{c.plan}</td>
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: c.pay_status === 'paid' ? 'var(--green-soft)' : 'var(--orange-soft)', color: c.pay_status === 'paid' ? 'var(--green)' : 'var(--orange)' }}>
-                              {c.pay_status}
-                            </span>
+                            <select
+                              value={c.pay_status || 'awaiting_payment'}
+                              onChange={(e) => handleUpdatePayStatus(c.id, e.target.value)}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: '4px 8px',
+                                borderRadius: 8,
+                                border: '1px solid var(--line)',
+                                background: c.pay_status === 'paid' ? 'var(--green-soft)' : 'var(--orange-soft)',
+                                color: c.pay_status === 'paid' ? 'var(--green)' : 'var(--orange)',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <option value="awaiting_payment">Awaiting payment</option>
+                              <option value="paid">Paid</option>
+                              <option value="past_due">Payment failed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
                           </td>
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <button
-                              type="button"
-                              className="btn s"
-                              style={{ fontSize: 12, padding: '4px 10px' }}
-                              onClick={() => setSelectedClient(c)}
-                            >
-                              Inspect Details
-                            </button>
+                            <div style={{ display: 'inline-flex', gap: 6 }}>
+                              <Link
+                                href={`/dashboard?b=${c.id}`}
+                                className="btn s"
+                                style={{ fontSize: 12, padding: '4px 10px', textDecoration: 'none' }}
+                              >
+                                Dashboard ↗
+                              </Link>
+                              <button
+                                type="button"
+                                className="btn s"
+                                style={{ fontSize: 12, padding: '4px 10px' }}
+                                onClick={() => setSelectedClient(c)}
+                              >
+                                Inspect
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LEADS TAB */}
+        {tab === 'leads' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h2 style={{ fontSize: 22, margin: '0 0 4px' }}>Website Sign-ups</h2>
+                <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
+                  People who filled in the sign-up form on neario. Nothing is created until you click &quot;Create account&quot;.
+                </p>
+              </div>
+              <button type="button" className="btn s" onClick={refreshData}>↻ Refresh</button>
+            </div>
+
+            <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--line)' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--line)' }}>
+                      <th style={{ padding: '12px 16px' }}>Date</th>
+                      <th style={{ padding: '12px 16px' }}>Business</th>
+                      <th style={{ padding: '12px 16px' }}>Contact</th>
+                      <th style={{ padding: '12px 16px' }}>Plan / Notes</th>
+                      <th style={{ padding: '12px 16px' }}>Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
+                          No website sign-ups yet. New leads from the landing page form will appear here.
+                        </td>
+                      </tr>
+                    ) : (
+                      leads.map((l) => {
+                        const isNew = l.status === 'new';
+                        return (
+                          <tr key={l.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                            <td style={{ padding: '12px 16px', color: 'var(--muted)', fontSize: 12 }}>
+                              {new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ fontWeight: 700 }}>{l.business_name}</div>
+                              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                                {l.kind === 'agency' ? 'Agency Partner' : (l.business_type || 'Business')}
+                                {l.city ? ` · ${l.city}` : ''}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <div style={{ fontWeight: 600 }}>{l.contact_name || l.email}</div>
+                              <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                                {l.email}
+                                {l.phone ? ` · +${l.phone}` : ''}
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 16px', fontSize: 12 }}>
+                              <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{l.plan || 'yearly'}</span>
+                              {l.notes && <div style={{ color: 'var(--muted)', marginTop: 2 }}>{l.notes}</div>}
+                            </td>
+                            <td style={{ padding: '12px 16px' }}>
+                              <span
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: 99,
+                                  background: isNew ? 'var(--blue-soft, #e0f2fe)' : l.status === 'converted' ? 'var(--green-soft)' : 'var(--surface-2)',
+                                  color: isNew ? '#0284c7' : l.status === 'converted' ? 'var(--green)' : 'var(--muted)',
+                                }}
+                              >
+                                {isNew ? 'New' : l.status === 'converted' ? 'Converted' : 'Dismissed'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                              {isNew ? (
+                                <div style={{ display: 'inline-flex', gap: 6 }}>
+                                  <button
+                                    type="button"
+                                    className="btn p"
+                                    style={{ fontSize: 12, padding: '4px 10px' }}
+                                    onClick={() => handleConvertLead(l.id)}
+                                  >
+                                    Create account
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn s"
+                                    style={{ fontSize: 12, padding: '4px 10px' }}
+                                    onClick={() => handleDismissLead(l.id)}
+                                  >
+                                    Dismiss
+                                  </button>
+                                </div>
+                              ) : l.status === 'converted' ? (
+                                <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>✓ Account active</span>
+                              ) : (
+                                <span style={{ fontSize: 12, color: 'var(--muted)' }}>Dismissed</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -430,13 +702,20 @@ export default function AdminPage() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* View-As Audit Log Table */}
-            <div className="card" style={{ padding: 24, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-              <h3 style={{ fontSize: 18, margin: '0 0 6px' }}>View-As Audit Trail</h3>
-              <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 13 }}>
+        {/* AUDIT TAB */}
+        {tab === 'audit' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h2 style={{ fontSize: 22, margin: '0 0 4px' }}>View-As Audit Trail</h2>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
                 Live transparency log: Every time an agency user or Neario operator opens client feedback, it is recorded here.
               </p>
+            </div>
+
+            <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--line)' }}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                   <thead>
@@ -451,7 +730,7 @@ export default function AdminPage() {
                   <tbody>
                     {viewLogs.length === 0 ? (
                       <tr>
-                        <td colSpan={5} style={{ padding: 20, textAlign: 'center', color: 'var(--muted)' }}>
+                        <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: 'var(--muted)' }}>
                           No view-as events recorded yet.
                         </td>
                       </tr>
@@ -471,19 +750,6 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* SUPPORT TAB */}
-        {tab === 'support' && (
-          <div className="card" style={{ padding: 32, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-            <h2 style={{ fontSize: 20, margin: '0 0 8px' }}>Client Support Requests</h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 20px', fontSize: 14 }}>
-              Zero open requests. All clients and agency partners are up to date!
-            </p>
-            <div style={{ background: 'var(--green-soft)', color: 'var(--green)', padding: 14, borderRadius: 12, fontWeight: 600, fontSize: 13.5 }}>
-              ✓ All systems operating normally. Database replication healthy.
             </div>
           </div>
         )}
@@ -511,14 +777,40 @@ export default function AdminPage() {
               <b>{selectedClient.plan} (₹{selectedClient.plan === 'yearly' ? '5,391/yr' : '599/mo'})</b>
 
               <span style={{ color: 'var(--muted)' }}>Payment Status</span>
-              <b>{selectedClient.pay_status}</b>
+              <div>
+                <select
+                  value={selectedClient.pay_status || 'awaiting_payment'}
+                  onChange={async (e) => {
+                    const newStatus = e.target.value;
+                    await handleUpdatePayStatus(selectedClient.id, newStatus);
+                    setSelectedClient({ ...selectedClient, pay_status: newStatus });
+                  }}
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    padding: '4px 8px',
+                    borderRadius: 8,
+                    border: '1px solid var(--line)',
+                    background: selectedClient.pay_status === 'paid' ? 'var(--green-soft)' : 'var(--orange-soft)',
+                    color: selectedClient.pay_status === 'paid' ? 'var(--green)' : 'var(--orange)',
+                  }}
+                >
+                  <option value="awaiting_payment">Awaiting payment</option>
+                  <option value="paid">Paid</option>
+                  <option value="past_due">Payment failed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <span style={{ color: 'var(--muted)' }}>Feedback Count</span>
+              <b>{selectedClient.feedback_count || 0} reviews</b>
 
               <span style={{ color: 'var(--muted)' }}>Created</span>
               <b>{new Date(selectedClient.created_at).toLocaleDateString()}</b>
             </div>
 
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <Link href={`/dashboard`} className="btn p" style={{ textDecoration: 'none', textAlign: 'center' }}>
+              <Link href={`/dashboard?b=${selectedClient.id}`} className="btn p" style={{ textDecoration: 'none', textAlign: 'center' }}>
                 Open Client Dashboard →
               </Link>
               <button type="button" className="btn s" onClick={() => setSelectedClient(null)}>Close</button>
@@ -756,6 +1048,52 @@ export default function AdminPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Lead Conversion / Invite Modal */}
+      {inviteModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }}>
+          <div className="card" style={{ width: '100%', maxWidth: 520, padding: 32, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+            <h2 style={{ margin: '0 0 6px', fontSize: 22 }}>{inviteModal.title}</h2>
+            <p style={{ color: 'var(--muted)', margin: '0 0 16px', fontSize: 13.5 }}>
+              Account successfully created in the database. Send this setup link to the owner to set their password (valid for 7 days):
+            </p>
+            <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 10, fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 18, border: '1px solid var(--line)' }}>
+              {inviteModal.link}
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn p"
+                style={{ flex: 1 }}
+                onClick={() => {
+                  navigator.clipboard.writeText(inviteModal.link);
+                  showToast('Invite link copied to clipboard!');
+                }}
+              >
+                Copy Link
+              </button>
+              {inviteModal.waUrl && (
+                <a
+                  href={inviteModal.waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{ flex: 1, textDecoration: 'none', textAlign: 'center', background: '#25D366', color: '#fff', borderColor: '#25D366', fontWeight: 600 }}
+                >
+                  Send on WhatsApp ↗
+                </a>
+              )}
+              <button
+                type="button"
+                className="btn s"
+                onClick={() => setInviteModal(null)}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

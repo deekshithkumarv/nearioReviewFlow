@@ -98,6 +98,7 @@ export default function FeedbackPage({ params }) {
   const unwrappedParams = use(params);
   const businessId = unwrappedParams.businessId || '1';
 
+  const [business, setBusiness] = useState(null);
   const [lang, setLang] = useState('en');
   const [step, setStep] = useState(1);
   const [rating, setRating] = useState(0);
@@ -109,7 +110,25 @@ export default function FeedbackPage({ params }) {
   const [consentErr, setConsentErr] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    async function loadBiz() {
+      try {
+        const res = await fetch(`/api/feedback/${businessId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBusiness(data);
+        }
+      } catch (err) {
+        console.error('Error loading business for feedback:', err);
+      }
+    }
+    loadBiz();
+  }, [businessId]);
+
   const t = L[lang];
+  const servicesList = business?.services && Array.isArray(business.services) && business.services.length > 0
+    ? business.services
+    : t.S;
 
   function toggleTag(idx) {
     setSelectedTags((prev) =>
@@ -126,25 +145,28 @@ export default function FeedbackPage({ params }) {
     setSubmitting(true);
 
     try {
-      // Build final feedback text combining service & tags
-      const svcName = selectedSvc > -1 ? t.S[selectedSvc] : '';
-      const tagNames = selectedTags.map((i) => t.T[i]).join(', ');
-      let fullText = txt.trim();
-      if (svcName) fullText = `[Service: ${svcName}] ${fullText}`;
-      if (tagNames) fullText = `${fullText} (Tags: ${tagNames})`;
-      if (phone.trim()) fullText = `${fullText} [Contact: ${phone}]`;
+      const svcName = selectedSvc > -1 ? servicesList[selectedSvc] : null;
+      const tagNames = selectedTags.map((i) => t.T[i]);
 
       const res = await fetch(`/api/feedback/${businessId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, text: fullText }),
+        body: JSON.stringify({
+          rating,
+          text: txt.trim() || null,
+          service: svcName,
+          tags: tagNames,
+          phone: phone.trim() || null,
+          contactOk: consent,
+          lang,
+        }),
       });
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         showToast(errData.error || 'Could not record feedback.');
       } else {
-        showToast('Feedback submitted to database!');
+        showToast('Feedback submitted securely!');
       }
     } catch (e) {
       console.error(e);
@@ -180,11 +202,11 @@ export default function FeedbackPage({ params }) {
 
         <header className="top" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="logo" style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--sage)', color: 'var(--accent-text)', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 20 }}>
-            GH
+            {business?.name ? business.name.slice(0, 2).toUpperCase() : 'GH'}
           </div>
           <div>
-            <b style={{ display: 'block', fontSize: 17, letterSpacing: '-.2px' }}>The Green House</b>
-            <span style={{ fontSize: 13, color: 'var(--muted)' }}>Indiranagar, Bengaluru</span>
+            <b style={{ display: 'block', fontSize: 17, letterSpacing: '-.2px' }}>{business?.name || 'The Green House'}</b>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>{business?.city || 'Local business'}</span>
           </div>
           <div className="lang" style={{ marginLeft: 'auto', display: 'flex', gap: 4, background: 'var(--surface-2)', borderRadius: 999, padding: 3 }}>
             <button
@@ -270,7 +292,7 @@ export default function FeedbackPage({ params }) {
             <div>
               <p style={{ margin: '0 0 8px', color: 'var(--muted)', fontSize: 14 }}>{t.svc}</p>
               <div className="chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {t.S.map((s, i) => (
+                {servicesList.map((s, i) => (
                   <button
                     key={s}
                     type="button"
@@ -399,11 +421,11 @@ export default function FeedbackPage({ params }) {
             </div>
 
             <a
-              href="https://maps.google.com"
+              href={business?.googleReviewUrl || "https://maps.google.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="btn p"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10, width: '100%', justifyContent: 'center' }}
             >
               <span style={{ fontWeight: 800, color: 'var(--blue)', background: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'grid', placeItems: 'center', fontSize: 13 }}>G</span>
               <span>{t.gBtn}</span>

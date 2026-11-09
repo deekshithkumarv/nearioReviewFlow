@@ -10,6 +10,7 @@ export default function HomePage() {
   const [eml, setEml] = useState('');
   const [tel, setTel] = useState('');
   const [cat, setCat] = useState('Salon or spa');
+  const [honeypot, setHoneypot] = useState('');
   const [formErr, setFormErr] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -79,6 +80,7 @@ export default function HomePage() {
           phone: tel.trim(),
           plan,
           type: cat,
+          company_url: honeypot,
         }),
       });
 
@@ -644,6 +646,19 @@ export default function HomePage() {
               </div>
 
               <form id="f" noValidate onSubmit={handleFormSubmit}>
+                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+                  <label>
+                    Do not fill this in
+                    <input
+                      name="company_url"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                    />
+                  </label>
+                </div>
+
                 <label htmlFor="who">
                   I am a
                   <select id="who" value={who} onChange={(e) => setWho(e.target.value)}>

@@ -5,7 +5,10 @@ import { GET as meRoute } from '../app/api/me/route.js';
 import { GET as listAgenciesRoute, POST as createAgencyRoute } from '../app/api/agencies/route.js';
 import { GET as listBusinessesRoute, POST as createBusinessRoute } from '../app/api/businesses/route.js';
 import { GET as getBusinessFeedbackRoute } from '../app/api/businesses/[id]/feedback/route.js';
-import { POST as submitFeedbackRoute } from '../app/api/feedback/[businessId]/route.js';
+import { GET as getPublicBusinessRoute, POST as submitFeedbackRoute } from '../app/api/feedback/[businessId]/route.js';
+import { PATCH as updateBusinessRoute } from '../app/api/businesses/[id]/route.js';
+import { GET as listLeadsRoute, POST as submitLeadRoute } from '../app/api/leads/route.js';
+import { POST as convertLeadRoute } from '../app/api/leads/[id]/convert/route.js';
 import { GET as getViewLogRoute } from '../app/api/view-log/route.js';
 
 const BASE_URL = 'http://localhost:3000';
@@ -44,7 +47,7 @@ async function runTests() {
   `);
   const tableNames = tables.map(t => t.tablename);
   console.log('✓ Public tables found in Neon DB:', tableNames.join(', '));
-  const expectedTables = ['agencies', 'businesses', 'feedback', 'invites', 'users', 'view_log'];
+  const expectedTables = ['agencies', 'businesses', 'feedback', 'invites', 'leads', 'users', 'view_log'];
   for (const t of expectedTables) {
     if (!tableNames.includes(t)) {
       throw new Error(`Missing expected table: ${t}`);
@@ -243,6 +246,118 @@ async function runTests() {
   if (clientBusinesses.length !== 1 || clientBusinesses[0]?.id !== businessId) {
     throw new Error(`Client saw unexpected businesses!`);
   }
+
+  // Test 12: Website Lead Submission & Honeypot Protection
+  console.log('\n--- 11. Website Lead Submission & Bot Protection ---');
+  // Honeypot test: if company_url is populated, bot is rejected silently with status 200 { ok: true }
+  const botLeadRes = await submitLeadRoute(makeReq('/api/leads', {
+    method: 'POST',
+    body: {
+      businessName: 'Spam Bot Business',
+      email: 'bot@spam.com',
+      company_url: 'https://spambot.xyz'
+    }
+  }));
+  const botLeadData = await botLeadRes.json();
+  console.log(`✓ Bot trap response: ok=${botLeadData.ok}`);
+
+  // Real lead test
+  const testLeadEmail = `lead+${Date.now()}@organicbakery.test`;
+  const realLeadRes = await submitLeadRoute(makeReq('/api/leads', {
+    method: 'POST',
+    body: {
+      kind: 'owner',
+      name: 'Artisan Sourdough Bakery',
+      type: 'Restaurant or café',
+      email: testLeadEmail,
+      phone: '9876543210',
+      plan: 'yearly'
+    }
+  }));
+  if (realLeadRes.status !== 200) {
+    const err = await realLeadRes.json();
+    throw new Error(`Real lead submission failed with status ${realLeadRes.status}: ${JSON.stringify(err)}`);
+  }
+  const realLeadData = await realLeadRes.json();
+  console.log(`✓ Real lead captured successfully! ok=${realLeadData.ok}`);
+
+  // Test 13: Super Admin Converts Lead to Client Business
+  console.log('\n--- 12. Super Admin Converts Lead to Client ---');
+  const leadsListRes = await listLeadsRoute(makeReq('/api/leads', { cookie: adminCookie }));
+  const leadsListData = await leadsListRes.json();
+  const matchingLead = (leadsListData.leads || []).find(l => l.email === testLeadEmail);
+  if (!matchingLead) throw new Error('Created lead was not returned in /api/leads');
+  const leadId = matchingLead.id;
+  console.log(`✓ Lead verified in Super Admin leads list. ID: ${leadId}, Status: ${matchingLead.status}`);
+
+  const convertRes = await convertLeadRoute(
+    makeReq(`/api/leads/${leadId}/convert`, { method: 'POST', cookie: adminCookie }),
+    { params: Promise.resolve({ id: String(leadId) }) }
+  );
+  if (convertRes.status !== 200) {
+    const err = await convertRes.json();
+    throw new Error(`Lead conversion failed: ${JSON.stringify(err)}`);
+  }
+  const convertData = await convertRes.json();
+  const convertedBizId = convertData.id;
+  const convertedInviteToken = convertData.inviteToken;
+  console.log(`✓ Lead converted! Business ID: ${convertedBizId}, Token: ${convertedInviteToken?.substring(0, 8)}...`);
+
+  // Test 14: Client Onboarding and Feedback Enrichment
+  console.log('\n--- 13. Client Onboarding & Dynamic Feedback Flow ---');
+  // Update business with services and google review link
+  const updateBizRes = await updateBusinessRoute(
+    makeReq(`/api/businesses/${convertedBizId}`, {
+      method: 'PATCH',
+      cookie: adminCookie,
+      body: {
+        services: ['Sourdough Loaf', 'Butter Croissant', 'Espresso'],
+        googleReviewUrl: 'https://g.page/r/artisan-bakery/review',
+        payStatus: 'paid'
+      }
+    }),
+    { params: Promise.resolve({ id: String(convertedBizId) }) }
+  );
+  if (updateBizRes.status !== 200) {
+    throw new Error(`Business update failed with status ${updateBizRes.status}`);
+  }
+  console.log(`✓ Business services and Google Review URL configured.`);
+
+  // Verify public feedback page retrieves these services
+  const publicBizRes = await getPublicBusinessRoute(
+    makeReq(`/api/feedback/${convertedBizId}`),
+    { params: Promise.resolve({ businessId: String(convertedBizId) }) }
+  );
+  if (publicBizRes.status !== 200) {
+    throw new Error(`Public feedback info fetch failed: ${publicBizRes.status}`);
+  }
+  const publicBizData = await publicBizRes.json();
+  console.log(`✓ Customer sees public business: "${publicBizData.name}", services: [${publicBizData.services?.join(', ')}]`);
+  if (publicBizData.services?.length !== 3) {
+    throw new Error(`Expected 3 services on public business, found ${publicBizData.services?.length}`);
+  }
+
+  // Submit customer feedback for this business with service + tags + consent
+  const customerFeedbackRes = await submitFeedbackRoute(
+    makeReq(`/api/feedback/${convertedBizId}`, {
+      method: 'POST',
+      body: {
+        rating: 5,
+        service: 'Sourdough Loaf',
+        tags: ['Great taste', 'Fresh bake'],
+        txt: 'Best crust and sourdough aroma in Pune! Outstanding staff.',
+        phone: '9876543210',
+        contact_ok: true,
+        lang: 'en'
+      }
+    }),
+    { params: Promise.resolve({ businessId: String(convertedBizId) }) }
+  );
+  if (customerFeedbackRes.status !== 200) {
+    throw new Error(`Customer feedback submission failed: ${customerFeedbackRes.status}`);
+  }
+  const customerFbData = await customerFeedbackRes.json();
+  console.log(`✓ Customer feedback submitted! Feedback ID: ${customerFbData.feedback?.id}`);
 
   console.log('\n======================================================');
   console.log('🎉 ALL INTEGRATION TESTS PASSED WITH 100% SUCCESS!');

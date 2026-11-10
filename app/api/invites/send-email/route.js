@@ -38,15 +38,6 @@ export const POST = handle(async ({ actor, body }) => {
       ? body.businessName.trim().slice(0, 120)
       : 'your workspace';
 
-  const apiKey = (await resolveEnv('RESEND_API_KEY'))?.trim();
-  if (!apiKey) {
-    return json({ ok: false, sent: false, configured: false, to });
-  }
-
-  const from =
-    (await resolveEnv('EMAIL_FROM'))?.trim() ||
-    'Neario ReviewFlow <onboarding@resend.dev>';
-
   const subject = `Your Neario ReviewFlow invite for ${businessName}`;
   const safeName = escapeHtml(businessName);
   const safeLink = escapeHtml(linkUrl.toString());
@@ -82,6 +73,73 @@ export const POST = handle(async ({ actor, body }) => {
     </div>
   `.trim();
 
+  // Option 1: Personal Gmail via Google Apps Script Web App webhook
+  const gmailWebhookUrl = (await resolveEnv('GMAIL_WEBHOOK_URL'))?.trim();
+  const gmailWebhookSecret = (await resolveEnv('GMAIL_WEBHOOK_SECRET'))?.trim();
+  if (gmailWebhookUrl) {
+    if (!gmailWebhookSecret) {
+      throw new ServiceError(500, 'GMAIL_WEBHOOK_SECRET must be set alongside GMAIL_WEBHOOK_URL.');
+    }
+    let hookParsed;
+    try {
+      hookParsed = new URL(gmailWebhookUrl);
+    } catch {
+      throw new ServiceError(500, 'GMAIL_WEBHOOK_URL is not a valid URL.');
+    }
+    if (hookParsed.protocol !== 'https:') {
+      throw new ServiceError(500, 'GMAIL_WEBHOOK_URL must use https://.');
+    }
+
+    const hookRes = await fetch(hookParsed.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: gmailWebhookSecret,
+        to,
+        subject,
+        text,
+        html,
+        senderName: 'Neario ReviewFlow',
+      }),
+    });
+
+    const raw = await hookRes.text();
+    let hookData = null;
+    try {
+      hookData = JSON.parse(raw);
+    } catch {
+      throw new ServiceError(
+        502,
+        'Gmail webhook did not return JSON. Ensure Apps Script is deployed as Web App with "Who has access: Anyone".'
+      );
+    }
+
+    if (!hookRes.ok || !hookData?.ok) {
+      throw new ServiceError(
+        502,
+        hookData?.error || 'Failed to send invite via Gmail webhook.'
+      );
+    }
+
+    return json({
+      ok: true,
+      sent: true,
+      configured: true,
+      provider: 'gmail_webhook',
+      to,
+    });
+  }
+
+  // Option 2: Resend API (requires verified custom domain for EMAIL_FROM)
+  const apiKey = (await resolveEnv('RESEND_API_KEY'))?.trim();
+  if (!apiKey) {
+    return json({ ok: false, sent: false, configured: false, to });
+  }
+
+  const from =
+    (await resolveEnv('EMAIL_FROM'))?.trim() ||
+    'Neario ReviewFlow <onboarding@resend.dev>';
+
   const resendRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -109,6 +167,7 @@ export const POST = handle(async ({ actor, body }) => {
     ok: true,
     sent: true,
     configured: true,
+    provider: 'resend',
     to,
     id: resendData?.id || null,
   });

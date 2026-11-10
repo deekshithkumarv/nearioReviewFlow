@@ -16,11 +16,27 @@ export default function LandingPage({ initialSection = 'top' }) {
   const [honeypot, setHoneypot] = useState('');
   const [formErr, setFormErr] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
+  const [resetCountdown, setResetCountdown] = useState(20);
   const [submitting, setSubmitting] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [activeSection, setActiveSection] = useState(initialSection);
   const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  useEffect(() => {
+    if (!formSuccess) return;
+    setResetCountdown(20);
+    const interval = setInterval(() => {
+      setResetCountdown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    const timer = setTimeout(() => {
+      setFormSuccess(false);
+    }, 20000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timer);
+    };
+  }, [formSuccess]);
 
   const scrollToSection = (sectionId, behavior = 'smooth') => {
     if (!sectionId || sectionId === 'top') {
@@ -722,6 +738,9 @@ export default function LandingPage({ initialSection = 'top' }) {
                     >
                       Submit another inquiry
                     </button>
+                    <span style={{ display: 'block', marginTop: '10px', fontSize: '12px', color: '#15803d', opacity: 0.85 }}>
+                      Returning to form in {resetCountdown}s…
+                    </span>
                   </div>
                 ) : (
                   <>

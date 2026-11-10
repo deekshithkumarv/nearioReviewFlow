@@ -1,16 +1,5 @@
-'use client';
-
-import { useEffect } from 'react';
+import DemoLoader from '../components/DemoLoader';
 
 export default function DemoPage() {
-  useEffect(() => {
-    window.location.replace('/demo/overview' + window.location.search);
-  }, []);
-
-  return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#f7f3ea', fontFamily: 'sans-serif' }}>
-      <div style={{ fontWeight: 600, color: '#65726a', fontSize: 16 }}>Loading Dashboard Demo…</div>
-    </div>
-  );
+  return <DemoLoader />;
 }
-

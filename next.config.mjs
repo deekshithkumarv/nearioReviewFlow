@@ -1,5 +1,4 @@
 export default {
-  serverExternalPackages: ['pg'],
   async rewrites() {
     return {
       beforeFiles: [

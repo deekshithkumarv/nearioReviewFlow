@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import HeroPhoneMockup from './HeroPhoneMockup';
+import { CookieSettingsButton } from './CookieConsent';
 
 const SECTION_IDS = ['how', 'features', 'agencies', 'pricing', 'honest', 'faq', 'start'];
 
@@ -940,6 +941,7 @@ export default function LandingPage({ initialSection = 'top' }) {
                 <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Get 3 months free</a></li>
                 <li><Link href="/privacy">Privacy Policy</Link></li>
                 <li><Link href="/terms">Terms of Use</Link></li>
+                <li><CookieSettingsButton className="footer-cookie-btn" /></li>
                 <li><a href="mailto:vdeekshithkumar@gmail.com">vdeekshithkumar@gmail.com</a></li>
               </ul>
             </div>
@@ -951,6 +953,7 @@ export default function LandingPage({ initialSection = 'top' }) {
               <span>₹599/mo or ₹5,391/yr (3 months free) · No GST</span>
               <Link href="/privacy">Privacy</Link>
               <Link href="/terms">Terms</Link>
+              <CookieSettingsButton className="footer-cookie-btn" style={{ color: 'rgba(255, 255, 255, 0.78)' }}>Cookies</CookieSettingsButton>
               <Link href="/login">Sign in</Link>
             </div>
           </div>

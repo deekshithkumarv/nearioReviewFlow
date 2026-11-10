@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CookieSettingsButton } from '../components/CookieConsent';
 
 export const metadata = {
   title: 'Privacy | Neario ReviewFlow',
@@ -63,6 +64,12 @@ export default function PrivacyPage() {
 
         <h2 style={{ fontSize: 20, letterSpacing: '-.02em', margin: '32px 0 8px' }}>Security</h2>
         <p>We use encrypted connections and limit who on our team can open client data. No online service can promise perfect security.</p>
+
+        <h2 style={{ fontSize: 20, letterSpacing: '-.02em', margin: '32px 0 8px' }}>Cookies</h2>
+        <p>We use a strictly necessary sign-in cookie (<code>neario_session</code>) for logged-in businesses and agencies, plus a preference record (<code>neario_cookie_consent</code>) to store your cookie choices. Non-essential cookies remain optional and can be changed anytime.</p>
+        <p>
+          <CookieSettingsButton className="btn s btn-sm">Manage Cookie Preferences</CookieSettingsButton>
+        </p>
 
         <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '36px 0 20px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, fontSize: 14, color: 'var(--muted)' }}>

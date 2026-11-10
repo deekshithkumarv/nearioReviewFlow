@@ -1,5 +1,6 @@
 import './globals.css';
 import { SvgSprite } from './components/Icons';
+import CookieConsent from './components/CookieConsent';
 
 export const metadata = {
   title: 'Neario ReviewFlow | Turn real customer smiles into 5-star Google reviews',
@@ -21,6 +22,7 @@ export default function RootLayout({ children }) {
         <SvgSprite />
         <div id="toasts" className="toasts" aria-live="polite" aria-atomic="true"></div>
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

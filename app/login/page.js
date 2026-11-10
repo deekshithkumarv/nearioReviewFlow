@@ -105,8 +105,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--line)', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center' }}>
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--line)', fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span>Have an invite link? Open the link from your email or WhatsApp to set up your password.</span>
+            <a href="/demo/overview" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>
+              Just exploring? Open Interactive Dashboard Demo →
+            </a>
           </div>
         </div>
       </main>

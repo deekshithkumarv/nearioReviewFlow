@@ -177,7 +177,7 @@ export default function OnboardingPage() {
   }
 
   const feedbackUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/feedback/1`
+    ? `${window.location.origin}/feedback/${bizId || 1}`
     : `https://feedback.example.com/${slug(d.biz)}/${slug(d.locs[0]?.n)}`;
 
   useEffect(() => {
@@ -525,7 +525,7 @@ export default function OnboardingPage() {
                     >
                       Copy link
                     </button>
-                    <Link href="/feedback/1" target="_blank" className="btn s" style={{ textDecoration: 'none' }}>
+                    <Link href={`/feedback/${bizId || 1}`} target="_blank" className="btn s" style={{ textDecoration: 'none' }}>
                       Test page ↗
                     </Link>
                   </div>

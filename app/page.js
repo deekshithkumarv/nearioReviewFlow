@@ -186,7 +186,7 @@ export default function HomePage() {
             <a href="#features">Features</a>
             <a href="#agencies">For agencies</a>
             <a href="#pricing">Pricing</a>
-            <a href="/dashboard/overview" style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <a href="/demo/overview" style={{ display: 'inline-flex', alignItems: 'center' }}>
               Dashboard
               <span className="nav-badge demo">DEMO</span>
             </a>
@@ -282,7 +282,7 @@ export default function HomePage() {
 
             <div className="mobile-drawer-sec">Portals & Demo</div>
             <nav className="mobile-drawer-links" aria-label="Mobile portals">
-              <a href="/dashboard/overview" onClick={closeMobileMenu}>
+              <a href="/demo/overview" onClick={closeMobileMenu}>
                 <span>Dashboard Demo</span>
                 <span className="badge green">Demo</span>
               </a>

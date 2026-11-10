@@ -4,11 +4,11 @@ export default {
     return {
       beforeFiles: [
         {
-          source: '/dashboard',
+          source: '/demo',
           destination: '/dashboard.html',
         },
         {
-          source: '/dashboard/:path*',
+          source: '/demo/:path*',
           destination: '/dashboard.html',
         },
       ],

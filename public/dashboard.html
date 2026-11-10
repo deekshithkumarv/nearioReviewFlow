@@ -760,7 +760,7 @@ function paintNav(){
   var recent=S.status==='ready'?D.filter(function(e){return e.t>NOW-2*DAY}).length:0;
   var mk=function(a){return a.filter(function(n){return n[0]!=='agency'||S.mode==='agency'}).map(function(n){
     var tg=n[0]==='feedback'&&recent?'<span class="tag num">'+recent+'</span>':n[0]==='fixit'&&fixOpen()?'<span class="tag num">'+fixOpen()+'</span>':n[0]==='analytics'?'<span class="tag new">NEW</span>':'';
-    return '<a href="/dashboard/'+n[0]+'" data-r="'+n[0]+'" data-go="'+n[0]+'"'+(S.route===n[0]?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+tg+'</a>'}).join('')};
+    return '<a href="/demo/'+n[0]+'" data-r="'+n[0]+'" data-go="'+n[0]+'"'+(S.route===n[0]?' aria-current="page"':'')+'>'+ic(n[2])+n[1]+tg+'</a>'}).join('')};
   $('#nav').innerHTML=mk(NAV);$('#nav2').innerHTML=mk(NAV2);
 }
 function paintBell(){
@@ -1100,7 +1100,7 @@ function extraInput(t){
 /* ---------- router ---------- */
 function getRouteFromUrl(){
   var p=(location.pathname||'').replace(/\/+$/,'');
-  var m=p.match(/^\/dashboard(?:\/(.+))?$/);
+  var m=p.match(/^\/demo(?:\/(.+))?$/);
   if(m&&m[1]){
     return decodeURIComponent(m[1]);
   }
@@ -1115,7 +1115,7 @@ function route(){
   S.route=ok.indexOf(h)>-1?h:'overview';
   if(S.route==='agency'&&S.mode!=='agency'){S.mode='agency';syncMode()}
   if(window.history&&window.history.replaceState){
-    var targetPath='/dashboard/'+S.route;
+    var targetPath='/demo/'+S.route;
     if(location.pathname!==targetPath||location.hash){
       window.history.replaceState({route:S.route},'',targetPath+location.search);
     }
@@ -1132,7 +1132,7 @@ function route(){
 }
 function go(r){
   if(!r)r='overview';
-  var targetPath='/dashboard/'+r;
+  var targetPath='/demo/'+r;
   if(window.history&&window.history.pushState){
     if(location.pathname!==targetPath||location.hash){
       window.history.pushState({route:r},'',targetPath+location.search);

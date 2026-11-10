@@ -890,24 +890,70 @@ export default function LandingPage({ initialSection = 'top' }) {
         </section>
       </main>
 
-      {/* Clean Footer */}
-      <footer>
+      {/* Professional Footer */}
+      <footer className="site-footer">
         <div className="in">
-          <div>
-            <b style={{ color: 'var(--fg)' }}>Neario ReviewFlow</b>
-            <br />
-            Feedback and review management for local businesses.
+          <div className="footer-grid">
+            <div>
+              <a href="/" className="footer-brand-row" onClick={(e) => handleSectionNav(e, 'top')}>
+                <span className="footer-mark" aria-hidden="true">N</span>
+                <span>
+                  <span className="footer-brand-name">neario</span>
+                  <span className="footer-brand-sub">REVIEWFLOW</span>
+                </span>
+              </a>
+              <p className="footer-desc">
+                Turn real in-store smiles into 5-star Google reviews while keeping private customer feedback actionable and 100% Google policy compliant.
+              </p>
+              <div className="footer-pills">
+                <span className="footer-pill">English · हिन्दी · ಕನ್ನಡ</span>
+                <span className="footer-pill">Zero review gating</span>
+              </div>
+            </div>
+
+            <div className="footer-col">
+              <h3>Product</h3>
+              <ul>
+                <li><a href="/how" onClick={(e) => handleSectionNav(e, 'how')}>How it works</a></li>
+                <li><a href="/features" onClick={(e) => handleSectionNav(e, 'features')}>Features</a></li>
+                <li><a href="/honest" onClick={(e) => handleSectionNav(e, 'honest')}>Honest reviews</a></li>
+                <li><a href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>Pricing</a></li>
+                <li><a href="/demo/overview">Interactive Demo</a></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h3>Solutions</h3>
+              <ul>
+                <li><a href="/agencies" onClick={(e) => handleSectionNav(e, 'agencies')}>For agencies</a></li>
+                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Restaurants &amp; cafés</a></li>
+                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Salons &amp; spas</a></li>
+                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Clinics &amp; retail</a></li>
+                <li><Link href="/login">Partner sign in</Link></li>
+              </ul>
+            </div>
+
+            <div className="footer-col">
+              <h3>Support &amp; Legal</h3>
+              <ul>
+                <li><a href="/faq" onClick={(e) => handleSectionNav(e, 'faq')}>FAQ</a></li>
+                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Get 3 months free</a></li>
+                <li><Link href="/privacy">Privacy Policy</Link></li>
+                <li><Link href="/terms">Terms of Use</Link></li>
+                <li><a href="mailto:vdeekshithkumar@gmail.com">vdeekshithkumar@gmail.com</a></li>
+              </ul>
+            </div>
           </div>
-          <nav aria-label="Footer">
-            <a href="/how" onClick={(e) => handleSectionNav(e, 'how')}>How it works</a>
-            <a href="/agencies" onClick={(e) => handleSectionNav(e, 'agencies')}>For agencies</a>
-            <a href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>Pricing</a>
-            <a href="/faq" onClick={(e) => handleSectionNav(e, 'faq')}>FAQ</a>
-            <a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Sign up</a>
-            <Link href="/login">Sign in</Link>
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-          </nav>
+
+          <div className="footer-bottom">
+            <div>© 2026 Neario ReviewFlow · Feedback &amp; review management for local businesses.</div>
+            <div className="footer-bottom-links">
+              <span>₹599/mo or ₹5,391/yr (3 months free) · No GST</span>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+              <Link href="/login">Sign in</Link>
+            </div>
+          </div>
         </div>
       </footer>
     </>

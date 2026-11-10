@@ -2280,3 +2280,40 @@ header.bar {
   padding: 16px 18px;
   margin: 16px 0;
 }
+
+/* Admin Skeleton Loader & Action Spinners */
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  display: block;
+  background: linear-gradient(90deg, var(--surface-2) 25%, rgba(22, 78, 54, 0.08) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.35s ease-in-out infinite;
+  border-radius: 8px;
+}
+.spinner.spinner-dark {
+  border-color: rgba(26, 36, 30, 0.22);
+  border-top-color: var(--fg);
+}
+.spin-icon {
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+.btn.btn-xs {
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-radius: 9px;
+  white-space: nowrap;
+  justify-content: center;
+  line-height: 1.25;
+}
+.btn.btn-sm {
+  justify-content: center;
+  line-height: 1.25;
+}
+.btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}

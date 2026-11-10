@@ -9,6 +9,14 @@ export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [convertingLeadId, setConvertingLeadId] = useState(null);
+  const [dismissingLeadId, setDismissingLeadId] = useState(null);
+  const [creatingAgency, setCreatingAgency] = useState(false);
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [sendingInviteEmail, setSendingInviteEmail] = useState(false);
+  const [emailSentTo, setEmailSentTo] = useState(null);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [tab, setTab] = useState('overview');
   const [range, setRange] = useState(6);
   const [q, setQ] = useState('');
@@ -88,24 +96,37 @@ export default function AdminPage() {
     loadData();
   }, [router]);
 
-  async function refreshData() {
+  async function refreshData({ showSkeleton = false } = {}) {
+    if (showSkeleton) setRefreshing(true);
     try {
-      const [bizRes, agRes, logRes, leadRes] = await Promise.all([
+      const fetchAll = Promise.all([
         fetch('/api/businesses'),
         fetch('/api/agencies'),
         fetch('/api/view-log'),
         fetch('/api/leads'),
       ]);
+      const [results] = await Promise.all([
+        fetchAll,
+        showSkeleton ? new Promise((r) => setTimeout(r, 320)) : Promise.resolve(),
+      ]);
+      const [bizRes, agRes, logRes, leadRes] = results;
       if (bizRes.ok) setBusinesses((await bizRes.json()).businesses || []);
       if (agRes.ok) setAgencies((await agRes.json()).agencies || []);
       if (logRes.ok) setViewLogs((await logRes.json()).log || []);
       if (leadRes.ok) setLeads((await leadRes.json()).leads || []);
     } catch (err) {
       console.error('Error refreshing data:', err);
+      if (showSkeleton) showToast('Failed to refresh data.');
+    } finally {
+      if (showSkeleton) setRefreshing(false);
     }
   }
 
-  async function handleConvertLead(leadId) {
+  async function handleConvertLead(lead) {
+    const leadId = typeof lead === 'object' ? lead.id : lead;
+    const fallbackEmail = typeof lead === 'object' ? lead.email : '';
+    const fallbackPhone = typeof lead === 'object' ? lead.phone : '';
+    setConvertingLeadId(leadId);
     try {
       const res = await fetch(`/api/leads/${leadId}/convert`, { method: 'POST' });
       const data = await res.json();
@@ -115,19 +136,33 @@ export default function AdminPage() {
       }
       showToast(`Account created for ${data.name}!`);
       const link = `${window.location.origin}/accept?token=${data.inviteToken}`;
+      const phone = data.phone || fallbackPhone;
+      const email = data.email || fallbackEmail;
       const waMsg = encodeURIComponent(
         `Hi! Here is your Neario ReviewFlow sign-in link: ${link}`
       );
-      const waUrl = data.phone ? `https://wa.me/${data.phone}?text=${waMsg}` : '';
-      setInviteModal({ title: `Invite for ${data.name}`, link, waUrl });
+      const waUrl = phone ? `https://wa.me/${phone}?text=${waMsg}` : '';
+      setCopiedInvite(false);
+      setEmailSentTo(null);
+      setInviteModal({
+        title: `Invite for ${data.name}`,
+        businessName: data.name,
+        email,
+        phone,
+        link,
+        waUrl,
+      });
       refreshData();
     } catch (err) {
       showToast('Error converting lead.');
+    } finally {
+      setConvertingLeadId(null);
     }
   }
 
   async function handleDismissLead(leadId) {
     if (!confirm('Dismiss this website sign-up?')) return;
+    setDismissingLeadId(leadId);
     try {
       const res = await fetch(`/api/leads/${leadId}/dismiss`, { method: 'POST' });
       if (!res.ok) {
@@ -139,6 +174,51 @@ export default function AdminPage() {
       refreshData();
     } catch (err) {
       showToast('Error dismissing lead.');
+    } finally {
+      setDismissingLeadId(null);
+    }
+  }
+
+  async function handleSendInviteEmail({ to, businessName, inviteLink }) {
+    if (!to) {
+      showToast('No registered email address found for this account.');
+      return;
+    }
+    setSendingInviteEmail(true);
+    try {
+      const res = await fetch('/api/invites/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, businessName, inviteLink }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Failed to send invite email.');
+        return;
+      }
+      if (data.sent) {
+        setEmailSentTo(to);
+        showToast(`Invite email sent to ${to}!`);
+        return;
+      }
+      // Server email provider (RESEND_API_KEY) is not configured yet: open pre-addressed mail draft dynamically.
+      const subject = encodeURIComponent(`Your Neario ReviewFlow invite for ${businessName || 'your workspace'}`);
+      const body = encodeURIComponent(
+        `Hi,\n\nYour Neario ReviewFlow account for ${businessName || 'your workspace'} is ready.\nOpen this link to set your password and complete setup (valid for 7 days):\n\n${inviteLink}\n\n— Neario ReviewFlow`
+      );
+      const mailtoHref = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`;
+      const a = document.createElement('a');
+      a.href = mailtoHref;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setEmailSentTo(to);
+      showToast(`Opened email draft for ${to}.`);
+    } catch (err) {
+      showToast('Error sending invite email.');
+    } finally {
+      setSendingInviteEmail(false);
     }
   }
 
@@ -163,6 +243,7 @@ export default function AdminPage() {
 
   async function handleCreateAgency(e) {
     e.preventDefault();
+    setCreatingAgency(true);
     try {
       const res = await fetch('/api/agencies', {
         method: 'POST',
@@ -175,7 +256,13 @@ export default function AdminPage() {
         return;
       }
       showToast(`Agency ${agName} created!`);
-      setCreatedInvite(`${window.location.origin}/accept?token=${data.inviteToken}`);
+      setCopiedInvite(false);
+      setEmailSentTo(null);
+      setCreatedInvite({
+        link: `${window.location.origin}/accept?token=${data.inviteToken}`,
+        email: agOwnerEmail.trim(),
+        name: agName.trim(),
+      });
       // Refresh agencies
       const agRes = await fetch('/api/agencies');
       if (agRes.ok) {
@@ -184,11 +271,14 @@ export default function AdminPage() {
       }
     } catch (err) {
       showToast('Error creating agency.');
+    } finally {
+      setCreatingAgency(false);
     }
   }
 
   async function handleCreateClient(e) {
     e.preventDefault();
+    setCreatingClient(true);
     try {
       const res = await fetch('/api/businesses', {
         method: 'POST',
@@ -210,7 +300,13 @@ export default function AdminPage() {
         return;
       }
       showToast(`Business ${cliName} added!`);
-      setCliCreatedInvite(`${window.location.origin}/accept?token=${data.inviteToken}`);
+      setCopiedInvite(false);
+      setEmailSentTo(null);
+      setCliCreatedInvite({
+        link: `${window.location.origin}/accept?token=${data.inviteToken}`,
+        email: cliEmail.trim(),
+        name: cliName.trim(),
+      });
       // Refresh businesses
       const bizRes = await fetch('/api/businesses');
       if (bizRes.ok) {
@@ -219,13 +315,157 @@ export default function AdminPage() {
       }
     } catch (err) {
       showToast('Error creating business.');
+    } finally {
+      setCreatingClient(false);
     }
+  }
+
+  function renderTableSkeletonRows(colWidths, rowCount = 6) {
+    return Array.from({ length: rowCount }).map((_, rIdx) => (
+      <tr key={`sk-${rIdx}`} style={{ borderBottom: '1px solid var(--line)' }}>
+        {colWidths.map((w, cIdx) => (
+          <td key={cIdx} style={{ padding: '14px 16px' }}>
+            <span
+              className="skeleton"
+              style={{
+                height: 14,
+                width: w,
+                marginLeft: cIdx === colWidths.length - 1 ? 'auto' : 0,
+              }}
+            />
+            {cIdx === 1 || cIdx === 2 ? (
+              <span className="skeleton" style={{ height: 10, width: '60%', marginTop: 6 }} />
+            ) : null}
+          </td>
+        ))}
+      </tr>
+    ));
+  }
+
+  async function copyInviteLink(link) {
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = link;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedInvite(true);
+    showToast('Invite link copied to clipboard!');
+    setTimeout(() => setCopiedInvite(false), 2500);
+  }
+
+  function renderInviteShareSection({ link, email, businessName, waUrl, onClose }) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {(email || waUrl) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--muted)', background: 'var(--surface-2)', padding: '8px 12px', borderRadius: 10, border: '1px solid var(--line)' }}>
+            <span style={{ fontWeight: 700, color: 'var(--fg)' }}>Recipient:</span>
+            {email && <span style={{ fontFamily: 'monospace', color: 'var(--fg)' }}>{email}</span>}
+          </div>
+        )}
+
+        <div style={{ background: 'var(--surface-2)', padding: '10px 12px', borderRadius: 10, fontSize: 12, fontFamily: 'monospace', wordBreak: 'break-all', border: '1px solid var(--line)', color: 'var(--fg)' }}>
+          {link}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+          <button
+            type="button"
+            className="btn p btn-sm"
+            onClick={() => copyInviteLink(link)}
+          >
+            {copiedInvite ? '✓ Copied' : 'Copy Link'}
+          </button>
+
+          {email && (
+            <button
+              type="button"
+              className="btn s btn-sm"
+              disabled={sendingInviteEmail}
+              onClick={() => handleSendInviteEmail({ to: email, businessName, inviteLink: link })}
+              style={{
+                borderColor: emailSentTo === email ? 'var(--green)' : 'var(--line)',
+                color: emailSentTo === email ? 'var(--green)' : 'var(--fg)',
+              }}
+            >
+              {sendingInviteEmail ? (
+                <span className="btn-loading">
+                  <span className="spinner spinner-dark" aria-hidden="true" />
+                  <span>Sending…</span>
+                </span>
+              ) : emailSentTo === email ? (
+                '✓ Email Sent'
+              ) : (
+                '✉ Send via Email'
+              )}
+            </button>
+          )}
+
+          {waUrl && (
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-sm"
+              style={{
+                background: '#16a34a',
+                color: '#fff',
+                fontWeight: 700,
+              }}
+            >
+              Send on WhatsApp ↗
+            </a>
+          )}
+
+          <button
+            type="button"
+            className="btn s btn-sm"
+            style={{ marginLeft: 'auto' }}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
-        <div className="card" style={{ padding: 32, borderRadius: 16 }}>Loading Super Admin Console…</div>
+      <div className="admin-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--fg)', display: 'flex', flexDirection: 'column' }}>
+        <header className="bar" style={{ background: 'var(--surface)', borderBottom: '1px solid var(--line)', padding: '12px 20px' }}>
+          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span className="skeleton" style={{ width: 34, height: 34, borderRadius: 10 }} />
+              <span className="skeleton" style={{ width: 140, height: 20 }} />
+            </div>
+            <span className="skeleton" style={{ width: 220, height: 28, borderRadius: 10 }} />
+          </div>
+        </header>
+        <main style={{ maxWidth: 1200, width: '100%', margin: '0 auto', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <span className="skeleton" style={{ height: 42, borderRadius: 12 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+            {[0, 1, 2, 3].map((idx) => (
+              <div key={idx} className="card" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                <span className="skeleton" style={{ height: 13, width: '55%', marginBottom: 10 }} />
+                <span className="skeleton" style={{ height: 30, width: '40%', marginBottom: 8 }} />
+                <span className="skeleton" style={{ height: 11, width: '70%' }} />
+              </div>
+            ))}
+          </div>
+          <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--line)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <tbody>{renderTableSkeletonRows(['60px', '140px', '170px', '80px', '70px', '130px'], 6)}</tbody>
+            </table>
+          </div>
+        </main>
       </div>
     );
   }
@@ -323,31 +563,56 @@ export default function AdminPage() {
         {/* OVERVIEW TAB */}
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div className="kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
-              <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Monthly Recurring Revenue</span>
-                <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>₹{totalMrr.toLocaleString('en-IN')}</b>
-                <small style={{ color: 'var(--green)', fontWeight: 600 }}>↑ 12% vs last month</small>
-              </div>
-
-              <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total Businesses</span>
-                <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{businesses.length}</b>
-                <small style={{ color: 'var(--muted)' }}>{payingCount} paying · {businesses.length - payingCount} awaiting payment</small>
-              </div>
-
-              <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Partner Agencies</span>
-                <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{agencies.length}</b>
-                <small style={{ color: 'var(--muted)' }}>{viaAgencyCount} clients via agencies · {directCount} direct</small>
-              </div>
-
-              <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-                <span style={{ fontSize: 13, color: 'var(--muted)' }}>View-As Audit Events</span>
-                <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{viewLogs.length}</b>
-                <small style={{ color: 'var(--muted)' }}>Recorded in `view_log` table</small>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <h2 style={{ fontSize: 20, margin: 0 }}>Operator Overview</h2>
+              <button
+                type="button"
+                className="btn s btn-sm"
+                disabled={refreshing}
+                onClick={() => refreshData({ showSkeleton: true })}
+              >
+                <span className={refreshing ? 'spin-icon' : ''} aria-hidden="true">↻</span>
+                <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+              </button>
             </div>
+
+            {refreshing ? (
+              <div className="kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                {[0, 1, 2, 3].map((idx) => (
+                  <div key={idx} className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                    <span className="skeleton" style={{ height: 13, width: '60%', marginBottom: 10 }} />
+                    <span className="skeleton" style={{ height: 32, width: '42%', marginBottom: 8 }} />
+                    <span className="skeleton" style={{ height: 12, width: '75%' }} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="kpis" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+                <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>Monthly Recurring Revenue</span>
+                  <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>₹{totalMrr.toLocaleString('en-IN')}</b>
+                  <small style={{ color: 'var(--green)', fontWeight: 600 }}>↑ 12% vs last month</small>
+                </div>
+
+                <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>Total Businesses</span>
+                  <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{businesses.length}</b>
+                  <small style={{ color: 'var(--muted)' }}>{payingCount} paying · {businesses.length - payingCount} awaiting payment</small>
+                </div>
+
+                <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>Partner Agencies</span>
+                  <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{agencies.length}</b>
+                  <small style={{ color: 'var(--muted)' }}>{viaAgencyCount} clients via agencies · {directCount} direct</small>
+                </div>
+
+                <div className="card kpi" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--muted)' }}>View-As Audit Events</span>
+                  <b className="num" style={{ fontSize: 30, display: 'block', margin: '4px 0' }}>{viewLogs.length}</b>
+                  <small style={{ color: 'var(--muted)' }}>Recorded in `view_log` table</small>
+                </div>
+              </div>
+            )}
 
             {/* Needs Attention */}
             <div className="card" style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--line)' }}>
@@ -405,7 +670,18 @@ export default function AdminPage() {
                 <h2 style={{ fontSize: 22, margin: '0 0 4px' }}>Client Businesses</h2>
                 <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>{clientsFiltered.length} businesses matching filters</p>
               </div>
-              <button type="button" className="btn p" onClick={() => setNewCliModal(true)}>+ Add Client</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn s btn-sm"
+                  disabled={refreshing}
+                  onClick={() => refreshData({ showSkeleton: true })}
+                >
+                  <span className={refreshing ? 'spin-icon' : ''} aria-hidden="true">↻</span>
+                  <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+                </button>
+                <button type="button" className="btn p btn-sm" onClick={() => setNewCliModal(true)}>+ Add Client</button>
+              </div>
             </div>
 
             {/* Filters */}
@@ -457,7 +733,9 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {clientsFiltered.length === 0 ? (
+                    {refreshing ? (
+                      renderTableSkeletonRows(['140px', '90px', '110px', '85px', '65px', '120px', '140px'], 6)
+                    ) : clientsFiltered.length === 0 ? (
                       <tr>
                         <td colSpan={7} style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
                           No client businesses found matching filters.
@@ -539,7 +817,15 @@ export default function AdminPage() {
                   People who filled in the sign-up form on neario. Nothing is created until you click &quot;Create account&quot;.
                 </p>
               </div>
-              <button type="button" className="btn s" onClick={refreshData}>↻ Refresh</button>
+              <button
+                type="button"
+                className="btn s btn-sm"
+                disabled={refreshing}
+                onClick={() => refreshData({ showSkeleton: true })}
+              >
+                <span className={refreshing ? 'spin-icon' : ''} aria-hidden="true">↻</span>
+                <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+              </button>
             </div>
 
             <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--line)' }}>
@@ -556,7 +842,9 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leads.length === 0 ? (
+                    {refreshing ? (
+                      renderTableSkeletonRows(['56px', '150px', '185px', '72px', '78px', '165px'], 6)
+                    ) : leads.length === 0 ? (
                       <tr>
                         <td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
                           No website sign-ups yet. New leads from the landing page form will appear here.
@@ -565,6 +853,9 @@ export default function AdminPage() {
                     ) : (
                       leads.map((l) => {
                         const isNew = l.status === 'new';
+                        const isConverting = convertingLeadId === l.id;
+                        const isDismissing = dismissingLeadId === l.id;
+                        const rowBusy = isConverting || isDismissing;
                         return (
                           <tr key={l.id} style={{ borderBottom: '1px solid var(--line)' }}>
                             <td style={{ padding: '12px 16px', color: 'var(--muted)', fontSize: 12 }}>
@@ -604,22 +895,36 @@ export default function AdminPage() {
                             </td>
                             <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                               {isNew ? (
-                                <div style={{ display: 'inline-flex', gap: 6 }}>
+                                <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                                   <button
                                     type="button"
-                                    className="btn p"
-                                    style={{ fontSize: 12, padding: '4px 10px' }}
-                                    onClick={() => handleConvertLead(l.id)}
+                                    className="btn p btn-xs"
+                                    disabled={rowBusy || convertingLeadId !== null}
+                                    onClick={() => handleConvertLead(l)}
                                   >
-                                    Create account
+                                    {isConverting ? (
+                                      <span className="btn-loading">
+                                        <span className="spinner" aria-hidden="true" />
+                                        <span>Creating…</span>
+                                      </span>
+                                    ) : (
+                                      'Create account'
+                                    )}
                                   </button>
                                   <button
                                     type="button"
-                                    className="btn s"
-                                    style={{ fontSize: 12, padding: '4px 10px' }}
+                                    className="btn s btn-xs"
+                                    disabled={rowBusy || dismissingLeadId !== null}
                                     onClick={() => handleDismissLead(l.id)}
                                   >
-                                    Dismiss
+                                    {isDismissing ? (
+                                      <span className="btn-loading">
+                                        <span className="spinner spinner-dark" aria-hidden="true" />
+                                        <span>Dismissing…</span>
+                                      </span>
+                                    ) : (
+                                      'Dismiss'
+                                    )}
                                   </button>
                                 </div>
                               ) : l.status === 'converted' ? (
@@ -649,7 +954,18 @@ export default function AdminPage() {
                   Agencies that onboard and manage client businesses on Neario ReviewFlow.
                 </p>
               </div>
-              <button type="button" className="btn p" onClick={() => setNewAgModal(true)}>+ Onboard Agency</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn s btn-sm"
+                  disabled={refreshing}
+                  onClick={() => refreshData({ showSkeleton: true })}
+                >
+                  <span className={refreshing ? 'spin-icon' : ''} aria-hidden="true">↻</span>
+                  <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+                </button>
+                <button type="button" className="btn p btn-sm" onClick={() => setNewAgModal(true)}>+ Onboard Agency</button>
+              </div>
             </div>
 
             {/* Agency Partners Table */}
@@ -665,7 +981,9 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {agencies.length === 0 ? (
+                    {refreshing ? (
+                      renderTableSkeletonRows(['170px', '90px', '100px', '110px'], 4)
+                    ) : agencies.length === 0 ? (
                       <tr>
                         <td colSpan={4} style={{ padding: 32, textAlign: 'center', color: 'var(--muted)' }}>
                           No agencies registered yet. Click &apos;+ Onboard Agency&apos; to create your first partner.
@@ -708,11 +1026,22 @@ export default function AdminPage() {
         {/* AUDIT TAB */}
         {tab === 'audit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <h2 style={{ fontSize: 22, margin: '0 0 4px' }}>View-As Audit Trail</h2>
-              <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
-                Live transparency log: Every time an agency user or Neario operator opens client feedback, it is recorded here.
-              </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <h2 style={{ fontSize: 22, margin: '0 0 4px' }}>View-As Audit Trail</h2>
+                <p style={{ margin: 0, color: 'var(--muted)', fontSize: 13 }}>
+                  Live transparency log: Every time an agency user or Neario operator opens client feedback, it is recorded here.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn s btn-sm"
+                disabled={refreshing}
+                onClick={() => refreshData({ showSkeleton: true })}
+              >
+                <span className={refreshing ? 'spin-icon' : ''} aria-hidden="true">↻</span>
+                <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+              </button>
             </div>
 
             <div className="card" style={{ padding: 0, borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--line)' }}>
@@ -728,7 +1057,9 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {viewLogs.length === 0 ? (
+                    {refreshing ? (
+                      renderTableSkeletonRows(['140px', '130px', '110px', '140px', '140px'], 5)
+                    ) : viewLogs.length === 0 ? (
                       <tr>
                         <td colSpan={5} style={{ padding: 24, textAlign: 'center', color: 'var(--muted)' }}>
                           No view-as events recorded yet.
@@ -821,42 +1152,40 @@ export default function AdminPage() {
 
       {/* Add Agency Modal */}
       {newAgModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.4)', padding: 16 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 480, padding: 32, borderRadius: 20 }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 22 }}>Onboard New Agency Partner</h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 20px', fontSize: 13.5 }}>
-              The agency will manage multiple client businesses and receive a co-branded portal.
-            </p>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.45)', padding: 16 }}>
+          <div className="card" style={{ width: '100%', maxWidth: 500, padding: '24px 26px', borderRadius: 18, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div>
+                <h2 style={{ margin: '0 0 4px', fontSize: 20 }}>Onboard New Agency Partner</h2>
+                <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13 }}>
+                  {createdInvite
+                    ? 'Agency onboarded! Send this setup link (valid for 7 days):'
+                    : 'The agency will manage multiple client businesses and receive a co-branded portal.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close modal"
+                onClick={() => {
+                  setCreatedInvite(null);
+                  setNewAgModal(false);
+                }}
+                style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--line)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}
+              >
+                ✕
+              </button>
+            </div>
 
             {createdInvite ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ background: 'var(--green-soft)', color: 'var(--green)', padding: 14, borderRadius: 10, fontSize: 13.5, fontWeight: 600 }}>
-                  ✓ Agency onboarded! Share this private invite link with the agency manager:
-                </div>
-                <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 8, fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                  {createdInvite}
-                </div>
-                <button
-                  type="button"
-                  className="btn p"
-                  onClick={() => {
-                    navigator.clipboard.writeText(createdInvite);
-                    showToast('Invite link copied!');
-                  }}
-                >
-                  Copy Invite Link
-                </button>
-                <button
-                  type="button"
-                  className="btn s"
-                  onClick={() => {
-                    setCreatedInvite(null);
-                    setNewAgModal(false);
-                  }}
-                >
-                  Done
-                </button>
-              </div>
+              renderInviteShareSection({
+                link: createdInvite.link,
+                email: createdInvite.email,
+                businessName: createdInvite.name,
+                onClose: () => {
+                  setCreatedInvite(null);
+                  setNewAgModal(false);
+                },
+              })
             ) : (
               <form onSubmit={handleCreateAgency} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label className="f2">
@@ -898,8 +1227,17 @@ export default function AdminPage() {
                 </label>
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <button type="button" className="btn s" onClick={() => setNewAgModal(false)} style={{ flex: 1 }}>Cancel</button>
-                  <button type="submit" className="btn p" style={{ flex: 2 }}>Create Agency &amp; Generate Invite</button>
+                  <button type="button" className="btn s btn-sm" onClick={() => setNewAgModal(false)} style={{ flex: 1 }}>Cancel</button>
+                  <button type="submit" className="btn p btn-sm" disabled={creatingAgency} style={{ flex: 2 }}>
+                    {creatingAgency ? (
+                      <span className="btn-loading">
+                        <span className="spinner" aria-hidden="true" />
+                        <span>Creating Agency…</span>
+                      </span>
+                    ) : (
+                      'Create Agency & Generate Invite'
+                    )}
+                  </button>
                 </div>
               </form>
             )}
@@ -909,42 +1247,40 @@ export default function AdminPage() {
 
       {/* Add Client Modal */}
       {newCliModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.4)', padding: 16 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 480, padding: 32, borderRadius: 20 }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 22 }}>Add Client Business</h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 20px', fontSize: 13.5 }}>
-              Create a new client business. They will receive their own login invite.
-            </p>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.45)', padding: 16 }}>
+          <div className="card" style={{ width: '100%', maxWidth: 500, padding: '24px 26px', borderRadius: 18, background: 'var(--surface)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div>
+                <h2 style={{ margin: '0 0 4px', fontSize: 20 }}>Add Client Business</h2>
+                <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13 }}>
+                  {cliCreatedInvite
+                    ? 'Client created! Send this setup link to the business owner (valid for 7 days):'
+                    : 'Create a new client business. They will receive their own login invite.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close modal"
+                onClick={() => {
+                  setCliCreatedInvite(null);
+                  setNewCliModal(false);
+                }}
+                style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--line)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}
+              >
+                ✕
+              </button>
+            </div>
 
             {cliCreatedInvite ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ background: 'var(--green-soft)', color: 'var(--green)', padding: 14, borderRadius: 10, fontSize: 13.5, fontWeight: 600 }}>
-                  ✓ Client created! Send this setup link to the business owner:
-                </div>
-                <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 8, fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                  {cliCreatedInvite}
-                </div>
-                <button
-                  type="button"
-                  className="btn p"
-                  onClick={() => {
-                    navigator.clipboard.writeText(cliCreatedInvite);
-                    showToast('Invite link copied!');
-                  }}
-                >
-                  Copy Client Invite Link
-                </button>
-                <button
-                  type="button"
-                  className="btn s"
-                  onClick={() => {
-                    setCliCreatedInvite(null);
-                    setNewCliModal(false);
-                  }}
-                >
-                  Done
-                </button>
-              </div>
+              renderInviteShareSection({
+                link: cliCreatedInvite.link,
+                email: cliCreatedInvite.email,
+                businessName: cliCreatedInvite.name,
+                onClose: () => {
+                  setCliCreatedInvite(null);
+                  setNewCliModal(false);
+                },
+              })
             ) : (
               <form onSubmit={handleCreateClient} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label className="f2">
@@ -1043,8 +1379,17 @@ export default function AdminPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  <button type="button" className="btn s" onClick={() => setNewCliModal(false)} style={{ flex: 1 }}>Cancel</button>
-                  <button type="submit" className="btn p" style={{ flex: 2 }}>Create Client &amp; Generate Invite</button>
+                  <button type="button" className="btn s btn-sm" onClick={() => setNewCliModal(false)} style={{ flex: 1 }}>Cancel</button>
+                  <button type="submit" className="btn p btn-sm" disabled={creatingClient} style={{ flex: 2 }}>
+                    {creatingClient ? (
+                      <span className="btn-loading">
+                        <span className="spinner" aria-hidden="true" />
+                        <span>Creating Client…</span>
+                      </span>
+                    ) : (
+                      'Create Client & Generate Invite'
+                    )}
+                  </button>
                 </div>
               </form>
             )}
@@ -1055,45 +1400,34 @@ export default function AdminPage() {
       {/* Lead Conversion / Invite Modal */}
       {inviteModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 110, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }}>
-          <div className="card" style={{ width: '100%', maxWidth: 520, padding: 32, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--line)' }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 22 }}>{inviteModal.title}</h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 16px', fontSize: 13.5 }}>
-              Account successfully created in the database. Send this setup link to the owner to set their password (valid for 7 days):
-            </p>
-            <div style={{ background: 'var(--surface-2)', padding: 12, borderRadius: 10, fontSize: 12.5, fontFamily: 'monospace', wordBreak: 'break-all', marginBottom: 18, border: '1px solid var(--line)' }}>
-              {inviteModal.link}
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="card" style={{ width: '100%', maxWidth: 520, padding: '24px 26px', borderRadius: 18, background: 'var(--surface)', border: '1px solid var(--line)', boxShadow: '0 20px 50px rgba(0,0,0,0.18)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--green-soft)', color: 'var(--green)', display: 'grid', placeItems: 'center', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                <div>
+                  <h2 style={{ margin: '0 0 4px', fontSize: 19 }}>{inviteModal.title}</h2>
+                  <p style={{ color: 'var(--muted)', margin: 0, fontSize: 13, lineHeight: 1.4 }}>
+                    Account created. Send this setup link so the owner can set their password (valid for 7 days):
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
-                className="btn p"
-                style={{ flex: 1 }}
-                onClick={() => {
-                  navigator.clipboard.writeText(inviteModal.link);
-                  showToast('Invite link copied to clipboard!');
-                }}
-              >
-                Copy Link
-              </button>
-              {inviteModal.waUrl && (
-                <a
-                  href={inviteModal.waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn"
-                  style={{ flex: 1, textDecoration: 'none', textAlign: 'center', background: '#25D366', color: '#fff', borderColor: '#25D366', fontWeight: 600 }}
-                >
-                  Send on WhatsApp ↗
-                </a>
-              )}
-              <button
-                type="button"
-                className="btn s"
+                aria-label="Close modal"
                 onClick={() => setInviteModal(null)}
+                style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--line)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}
               >
-                Close
+                ✕
               </button>
             </div>
+
+            {renderInviteShareSection({
+              link: inviteModal.link,
+              email: inviteModal.email,
+              businessName: inviteModal.businessName,
+              waUrl: inviteModal.waUrl,
+              onClose: () => setInviteModal(null),
+            })}
           </div>
         </div>
       )}

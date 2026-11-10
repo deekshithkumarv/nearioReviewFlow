@@ -137,9 +137,15 @@ export default function FeedbackPage({ params }) {
   }
 
   async function handleSendFeedback() {
-    if (phone.trim() && !consent) {
-      setConsentErr(true);
-      return;
+    if (phone.trim()) {
+      if (!/^\d{10}$/.test(phone.trim()) || /^0{10}$/.test(phone.trim())) {
+        showToast('Please enter a valid 10-digit mobile number or leave it blank.');
+        return;
+      }
+      if (!consent) {
+        setConsentErr(true);
+        return;
+      }
     }
     setConsentErr(false);
     setSubmitting(true);
@@ -356,9 +362,12 @@ export default function FeedbackPage({ params }) {
               <span>{t.contact}</span>
               <input
                 type="tel"
-                placeholder="+91 98765 43210"
+                inputMode="numeric"
+                maxLength={10}
+                pattern="\d{10}"
+                placeholder="10-digit mobile number"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 style={{ width: '100%', borderRadius: 14, padding: '12px 14px', border: '1.5px solid var(--line)', background: 'var(--surface-2)' }}
               />
             </label>

@@ -56,16 +56,42 @@ export default function HomePage() {
     e.preventDefault();
     setFormErr('');
 
-    if (!biz.trim()) {
+    const bizTrim = biz.trim();
+    const emlTrim = eml.trim();
+    const telTrim = tel.trim();
+    const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const PHONE_RE = /^\d{10}$/;
+
+    if (!['owner', 'agency'].includes(who)) {
+      setFormErr('Please select whether you are a business owner or an agency.');
+      return;
+    }
+    if (!bizTrim) {
       setFormErr(who === 'agency' ? 'Enter your agency name.' : 'Enter your business name.');
       return;
     }
-    if (!eml.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(eml)) {
-      setFormErr('Enter a valid email, like name@business.com.');
+    if (bizTrim.length < 2 || !/[a-zA-Z0-9\u0900-\u097F\u0C80-\u0CFF]/.test(bizTrim)) {
+      setFormErr(
+        who === 'agency'
+          ? 'Enter a valid agency name (at least 2 characters).'
+          : 'Enter a valid business name (at least 2 characters).'
+      );
       return;
     }
-    if (tel.replace(/\D/g, '').length < 10) {
-      setFormErr('Enter your 10-digit WhatsApp number.');
+    if (!emlTrim || !EMAIL_RE.test(emlTrim)) {
+      setFormErr('Enter a valid email address, like name@business.com.');
+      return;
+    }
+    if (!PHONE_RE.test(telTrim) || /^0{10}$/.test(telTrim)) {
+      setFormErr('Enter a valid 10-digit WhatsApp number.');
+      return;
+    }
+    if (!['yearly', 'monthly'].includes(plan)) {
+      setFormErr('Please select a valid plan.');
+      return;
+    }
+    if (!cat.trim()) {
+      setFormErr('Please select a business type.');
       return;
     }
 
@@ -76,9 +102,9 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           kind: who,
-          name: biz.trim(),
-          email: eml.trim(),
-          phone: tel.trim(),
+          name: bizTrim,
+          email: emlTrim,
+          phone: telTrim,
           plan,
           type: cat,
           company_url: honeypot,
@@ -651,7 +677,14 @@ export default function HomePage() {
 
                     <label htmlFor="who">
                       I am a
-                      <select id="who" value={who} onChange={(e) => setWho(e.target.value)}>
+                      <select
+                        id="who"
+                        value={who}
+                        onChange={(e) => {
+                          setWho(e.target.value);
+                          if (formErr) setFormErr('');
+                        }}
+                      >
                         <option value="owner">Business owner</option>
                         <option value="agency">Agency managing clients</option>
                       </select>
@@ -663,9 +696,15 @@ export default function HomePage() {
                         id="biz"
                         name="biz"
                         autoComplete="organization"
+                        maxLength={100}
+                        minLength={2}
+                        placeholder={who === 'agency' ? 'e.g. Pixel & Co Marketing' : 'e.g. The Green House'}
                         required
                         value={biz}
-                        onChange={(e) => setBiz(e.target.value)}
+                        onChange={(e) => {
+                          setBiz(e.target.value);
+                          if (formErr) setFormErr('');
+                        }}
                       />
                     </label>
 
@@ -676,9 +715,14 @@ export default function HomePage() {
                         name="eml"
                         type="email"
                         autoComplete="email"
+                        maxLength={254}
+                        placeholder="you@business.com"
                         required
                         value={eml}
-                        onChange={(e) => setEml(e.target.value)}
+                        onChange={(e) => {
+                          setEml(e.target.value);
+                          if (formErr) setFormErr('');
+                        }}
                       />
                     </label>
 
@@ -688,12 +732,18 @@ export default function HomePage() {
                         id="tel"
                         name="tel"
                         type="tel"
-                        inputMode="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="\d{10}"
                         autoComplete="tel"
                         placeholder="10-digit mobile number"
                         required
                         value={tel}
-                        onChange={(e) => setTel(e.target.value)}
+                        onChange={(e) => {
+                          const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setTel(digitsOnly);
+                          if (formErr) setFormErr('');
+                        }}
                       />
                     </label>
 

@@ -6,8 +6,52 @@ import HeroPhoneMockup from './HeroPhoneMockup';
 
 const SECTION_IDS = ['how', 'features', 'agencies', 'pricing', 'honest', 'faq', 'start'];
 
+const FAQ_ITEMS = [
+  {
+    q: 'Do you only send happy customers to Google?',
+    a: 'No. That is review gating and Google does not allow it. Every customer sees the same Google review option after sending feedback.',
+  },
+  {
+    q: 'Does Neario write reviews for my customers?',
+    a: 'No. Customers write and post their own Google reviews. The tool can help tidy grammar in a customer’s own words, but never changes what they meant.',
+  },
+  {
+    q: 'How does yearly billing work?',
+    a: 'You pay one bill of ₹5,391, which covers 9 months at ₹599. The first 3 months are free, so you use Neario for the full 12 months.',
+  },
+  {
+    q: 'Do I pay GST on top?',
+    a: 'No. The price you see is the price you pay. No GST is added right now.',
+  },
+  {
+    q: 'Can I get a refund on the yearly plan?',
+    a: 'Yes, if you ask within 7 days of paying. We refund the full ₹5,391. After 7 days the yearly payment is not refundable.',
+  },
+  {
+    q: 'I run an agency. How do I pay?',
+    a: 'Each of your clients pays Neario directly and has their own login. You are not billed for them. Your agency name appears on the reports and QR cards you prepare.',
+  },
+  {
+    q: 'Do my customers need to install an app?',
+    a: 'No. They scan a QR code or tap a stand and the page opens in their browser.',
+  },
+  {
+    q: 'What is a TapReview device?',
+    a: 'A small stand that opens the same feedback page as the QR code when a phone is tapped on it.',
+  },
+  {
+    q: 'Can the replies post automatically?',
+    a: 'You can approve each reply yourself. Automatic replies are optional and come with limits you set, such as holding low-rated reviews for your approval.',
+  },
+  {
+    q: 'Which languages can customers use?',
+    a: 'The feedback page is available in English, Hindi and Kannada.',
+  },
+];
+
 export default function LandingPage({ initialSection = 'top' }) {
   const [plan, setPlan] = useState('yearly');
+  const [openFaq, setOpenFaq] = useState(null);
   const [who, setWho] = useState('owner');
   const [biz, setBiz] = useState('');
   const [eml, setEml] = useState('');
@@ -647,50 +691,26 @@ export default function LandingPage({ initialSection = 'top' }) {
         {/* FAQ Accordion */}
         <section className="sec" id="faq" style={{ paddingTop: 20 }}>
           <div className="in">
-            <div className="head">
-              <h2>Questions owners ask</h2>
+            <div className="head" style={{ alignItems: 'center', textAlign: 'center' }}>
+              <h2 style={{ maxWidth: 'none' }}>Questions owners ask</h2>
             </div>
             <div className="faq">
-              <details>
-                <summary>Do you only send happy customers to Google?</summary>
-                <p>No. That is review gating and Google does not allow it. Every customer sees the same Google review option after sending feedback.</p>
-              </details>
-              <details>
-                <summary>Does Neario write reviews for my customers?</summary>
-                <p>No. Customers write and post their own Google reviews. The tool can help tidy grammar in a customer’s own words, but never changes what they meant.</p>
-              </details>
-              <details>
-                <summary>How does yearly billing work?</summary>
-                <p>You pay one bill of ₹5,391, which covers 9 months at ₹599. The first 3 months are free, so you use Neario for the full 12 months.</p>
-              </details>
-              <details>
-                <summary>Do I pay GST on top?</summary>
-                <p>No. The price you see is the price you pay. No GST is added right now.</p>
-              </details>
-              <details>
-                <summary>Can I get a refund on the yearly plan?</summary>
-                <p>Yes, if you ask within 7 days of paying. We refund the full ₹5,391. After 7 days the yearly payment is not refundable.</p>
-              </details>
-              <details>
-                <summary>I run an agency. How do I pay?</summary>
-                <p>Each of your clients pays Neario directly and has their own login. You are not billed for them. Your agency name appears on the reports and QR cards you prepare.</p>
-              </details>
-              <details>
-                <summary>Do my customers need to install an app?</summary>
-                <p>No. They scan a QR code or tap a stand and the page opens in their browser.</p>
-              </details>
-              <details>
-                <summary>What is a TapReview device?</summary>
-                <p>A small stand that opens the same feedback page as the QR code when a phone is tapped on it.</p>
-              </details>
-              <details>
-                <summary>Can the replies post automatically?</summary>
-                <p>You can approve each reply yourself. Automatic replies are optional and come with limits you set, such as holding low-rated reviews for your approval.</p>
-              </details>
-              <details>
-                <summary>Which languages can customers use?</summary>
-                <p>The feedback page is available in English, Hindi and Kannada.</p>
-              </details>
+              {FAQ_ITEMS.map((item, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div className="faq-item" key={item.q} data-open={isOpen ? 'true' : 'false'}>
+                    <button
+                      type="button"
+                      className="faq-q"
+                      aria-expanded={isOpen}
+                      onClick={() => setOpenFaq((prev) => (prev === idx ? null : idx))}
+                    >
+                      <span>{item.q}</span>
+                    </button>
+                    {isOpen && <p className="faq-a">{item.a}</p>}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>

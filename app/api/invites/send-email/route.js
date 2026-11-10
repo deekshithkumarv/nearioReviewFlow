@@ -38,39 +38,143 @@ export const POST = handle(async ({ actor, body }) => {
       ? body.businessName.trim().slice(0, 120)
       : 'your workspace';
 
-  const subject = `Your Neario ReviewFlow invite for ${businessName}`;
+  const subject = `Welcome to Neario ReviewFlow — Activate ${businessName}`;
   const safeName = escapeHtml(businessName);
   const safeLink = escapeHtml(linkUrl.toString());
 
   const text = [
-    `Hi,`,
+    `Welcome to Neario ReviewFlow!`,
     ``,
-    `Your Neario ReviewFlow account for ${businessName} is ready.`,
-    `Open the link below to set your password and finish setup (valid for 7 days):`,
+    `Your workspace for ${businessName} has been approved and is ready to activate.`,
     ``,
+    `Quick setup (takes ~2 minutes):`,
+    `1. Create your password using the invite link below (valid for 7 days)`,
+    `2. Add your Google Review link and services`,
+    `3. Download & print your QR counter stand to start collecting customer feedback`,
+    ``,
+    `Activate your workspace:`,
     linkUrl.toString(),
     ``,
+    `Need help? Simply reply to this email.`,
     `— Neario ReviewFlow`,
   ].join('\n');
 
   const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; color: #1a241e;">
-      <h2 style="margin: 0 0 12px; font-size: 20px; color: #164e36;">Your Neario ReviewFlow account is ready</h2>
-      <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.5; color: #3f4b44;">
-        An account has been created for <strong>${safeName}</strong>. Click the button below to choose your password and launch your feedback QR kit (this link expires in 7 days):
-      </p>
-      <p style="margin: 24px 0;">
-        <a href="${safeLink}" style="display: inline-block; background: #164e36; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 20px; border-radius: 10px;">
-          Accept Invite &amp; Set Password
-        </a>
-      </p>
-      <p style="margin: 0 0 8px; font-size: 12.5px; color: #647068;">
-        Or copy and paste this link into your browser:
-      </p>
-      <p style="margin: 0; font-size: 12px; font-family: monospace; word-break: break-all; background: #f4f3ef; padding: 10px 12px; border-radius: 8px; color: #1a241e;">
-        ${safeLink}
-      </p>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activate your Neario ReviewFlow account</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f4ef; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1a241e; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f6f4ef; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e6e2d8; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 28px rgba(22, 78, 54, 0.06);">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 24px 28px; background-color: #164e36; color: #ffffff;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td valign="middle">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="width: 34px; height: 34px; background-color: #ffffff; color: #164e36; font-weight: 800; font-size: 18px; text-align: center; line-height: 34px; border-radius: 9px;">N</td>
+                        <td style="padding-left: 10px;">
+                          <div style="font-size: 18px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: #ffffff;">neario</div>
+                          <div style="font-size: 9px; font-weight: 700; letter-spacing: 0.24em; color: #b7d7c5; text-transform: uppercase;">REVIEWFLOW</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="display: inline-block; background-color: rgba(255,255,255,0.16); color: #ffffff; font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 99px; letter-spacing: 0.02em;">
+                      Workspace Ready
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Main Body -->
+          <tr>
+            <td style="padding: 30px 28px 24px;">
+              <h1 style="margin: 0 0 10px; font-size: 22px; line-height: 1.3; font-weight: 800; letter-spacing: -0.02em; color: #164e36;">
+                Activate your workspace for ${safeName}
+              </h1>
+              <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #3f4b44;">
+                Your Neario ReviewFlow account has been created. Set your password below to unlock your feedback dashboard and QR counter stand kit.
+              </p>
+
+              <!-- 3-Step Quick Overview -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8f7f3; border: 1px solid #ebe7de; border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 16px 18px;">
+                    <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #5b6961; margin-bottom: 10px;">
+                      What happens next
+                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13.5px; line-height: 1.5; color: #2b3730;">
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <strong style="color: #164e36;">1. Set your password</strong> &mdash; takes 10 seconds via your private link
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <strong style="color: #164e36;">2. Connect Google Reviews</strong> &mdash; paste your Google review link &amp; services
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 4px 0;">
+                          <strong style="color: #164e36;">3. Share your QR stand</strong> &mdash; capture honest feedback &amp; grow 5-star reviews
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 0 20px;">
+                <tr>
+                  <td align="center" bgcolor="#164e36" style="border-radius: 11px;">
+                    <a href="${safeLink}" target="_blank" style="display: inline-block; padding: 13px 24px; font-size: 14.5px; font-weight: 700; color: #ffffff; text-decoration: none; border-radius: 11px;">
+                      Accept Invite &amp; Set Password &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 18px; font-size: 12.5px; color: #647068;">
+                This private invite link is single-use and expires in <strong>7 days</strong>.
+              </p>
+
+              <!-- Fallback URL -->
+              <div style="border-top: 1px solid #ece8df; padding-top: 16px;">
+                <p style="margin: 0 0 6px; font-size: 12px; color: #647068;">
+                  Button not working? Copy and paste this link into your browser:
+                </p>
+                <p style="margin: 0; font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; background-color: #f4f3ef; padding: 10px 12px; border-radius: 8px; border: 1px solid #e6e2d8; color: #1a241e;">
+                  ${safeLink}
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 28px; background-color: #faf9f5; border-top: 1px solid #ece8df; font-size: 12px; color: #6d7871; line-height: 1.5;">
+              Sent by <strong style="color: #1a241e;">Neario ReviewFlow</strong>. Have a question or need help getting set up? Simply reply to this email.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
   `.trim();
 
   // Option 1: Personal Gmail via Google Apps Script Web App webhook

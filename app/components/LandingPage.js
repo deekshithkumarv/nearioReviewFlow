@@ -690,17 +690,35 @@ export default function LandingPage({ initialSection = 'top' }) {
 
               <form id="f" noValidate onSubmit={handleFormSubmit}>
                 {formSuccess ? (
-                  <div className="ok" id="ok" role="status" style={{ background: '#dcfce7', border: '1.5px solid #22c55e', color: '#166534', padding: '22px 18px', borderRadius: '16px', textAlign: 'center', marginTop: '6px' }}>
-                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎉</div>
-                    <b style={{ display: 'block', fontSize: '18px', color: '#14532d', marginBottom: '6px' }}>Request Received!</b>
-                    <p style={{ margin: '0 0 14px', fontSize: '14px', lineHeight: 1.5, color: '#166534' }}>
-                      Thanks! We have your details. Our team will review your business and message you on WhatsApp within one working day with your sign-in invite link and setup details.
+                  <div
+                    className="ok"
+                    id="ok"
+                    role="status"
+                    style={{
+                      background: '#dcfce7',
+                      border: '1.5px solid #22c55e',
+                      color: '#166534',
+                      padding: '28px 24px',
+                      borderRadius: '16px',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      margin: 0,
+                    }}
+                  >
+                    <div style={{ fontSize: '30px', lineHeight: 1, marginBottom: '10px' }}>🎉</div>
+                    <b style={{ display: 'block', fontSize: '18px', color: '#14532d', marginBottom: '8px' }}>
+                      Request Received!
+                    </b>
+                    <p style={{ margin: '0 auto 18px', maxWidth: '38ch', fontSize: '14px', lineHeight: 1.55, color: '#166534', textAlign: 'center' }}>
+                      Thanks! We have your details. Our team will review your business and send your sign-in invite link and setup details via Email or WhatsApp within one working day.
                     </p>
                     <button
                       type="button"
-                      className="btn s"
+                      className="btn s btn-sm"
                       onClick={() => setFormSuccess(false)}
-                      style={{ fontSize: '13px', padding: '6px 14px', background: '#ffffff', border: '1px solid #86efac', color: '#15803d' }}
+                      style={{ background: '#ffffff', border: '1px solid #86efac', color: '#15803d' }}
                     >
                       Submit another inquiry
                     </button>

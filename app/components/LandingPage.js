@@ -942,7 +942,7 @@ export default function LandingPage({ initialSection = 'top' }) {
                 <li><Link href="/privacy">Privacy Policy</Link></li>
                 <li><Link href="/terms">Terms of Use</Link></li>
                 <li><CookieSettingsButton className="footer-cookie-btn" /></li>
-                <li><a href="mailto:vdeekshithkumar@gmail.com">vdeekshithkumar@gmail.com</a></li>
+                <li><a href="mailto:vdeekshithkumar@gmail.com"></a></li>
               </ul>
             </div>
           </div>

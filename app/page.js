@@ -618,105 +618,119 @@ export default function HomePage() {
               </div>
 
               <form id="f" noValidate onSubmit={handleFormSubmit}>
-                <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
-                  <label>
-                    Do not fill this in
-                    <input
-                      name="company_url"
-                      tabIndex={-1}
-                      autoComplete="off"
-                      value={honeypot}
-                      onChange={(e) => setHoneypot(e.target.value)}
-                    />
-                  </label>
-                </div>
-
-                <label htmlFor="who">
-                  I am a
-                  <select id="who" value={who} onChange={(e) => setWho(e.target.value)}>
-                    <option value="owner">Business owner</option>
-                    <option value="agency">Agency managing clients</option>
-                  </select>
-                </label>
-
-                <label htmlFor="biz" id="bizl">
-                  {who === 'agency' ? 'Agency name' : 'Business name'}
-                  <input
-                    id="biz"
-                    name="biz"
-                    autoComplete="organization"
-                    required
-                    value={biz}
-                    onChange={(e) => setBiz(e.target.value)}
-                  />
-                </label>
-
-                <label htmlFor="eml">
-                  Email
-                  <input
-                    id="eml"
-                    name="eml"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={eml}
-                    onChange={(e) => setEml(e.target.value)}
-                  />
-                </label>
-
-                <label htmlFor="tel">
-                  WhatsApp number
-                  <input
-                    id="tel"
-                    name="tel"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    placeholder="10-digit mobile number"
-                    required
-                    value={tel}
-                    onChange={(e) => setTel(e.target.value)}
-                  />
-                </label>
-
-                <label htmlFor="plan">
-                  Plan
-                  <select id="plan" value={plan} onChange={(e) => setPlan(e.target.value)}>
-                    <option value="yearly">Yearly · first 3 months free · ₹5,391</option>
-                    <option value="monthly">Monthly · ₹599 per month</option>
-                  </select>
-                </label>
-
-                <label htmlFor="cat">
-                  Type of business
-                  <select id="cat" value={cat} onChange={(e) => setCat(e.target.value)}>
-                    <option>Salon or spa</option>
-                    <option>Restaurant or café</option>
-                    <option>Clinic</option>
-                    <option>Retail</option>
-                    <option>Other</option>
-                  </select>
-                </label>
-
-                {formErr && (
-                  <div id="err" style={{ color: 'var(--red, #c8442f)', fontSize: 14, fontWeight: 600 }} role="alert">
-                    {formErr}
+                {formSuccess ? (
+                  <div className="ok" id="ok" role="status" style={{ background: '#dcfce7', border: '1.5px solid #22c55e', color: '#166534', padding: '22px 18px', borderRadius: '16px', textAlign: 'center', marginTop: '6px' }}>
+                    <div style={{ fontSize: '28px', marginBottom: '8px' }}>🎉</div>
+                    <b style={{ display: 'block', fontSize: '18px', color: '#14532d', marginBottom: '6px' }}>Request Received!</b>
+                    <p style={{ margin: '0 0 14px', fontSize: '14px', lineHeight: 1.5, color: '#166534' }}>
+                      Thanks! We have your details. Our team will review your business and message you on WhatsApp within one working day with your sign-in invite link and setup details.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn s"
+                      onClick={() => setFormSuccess(false)}
+                      style={{ fontSize: '13px', padding: '6px 14px', background: '#ffffff', border: '1px solid #86efac', color: '#15803d' }}
+                    >
+                      Submit another inquiry
+                    </button>
                   </div>
-                )}
+                ) : (
+                  <>
+                    <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
+                      <label>
+                        Do not fill this in
+                        <input
+                          name="company_url"
+                          tabIndex={-1}
+                          autoComplete="off"
+                          value={honeypot}
+                          onChange={(e) => setHoneypot(e.target.value)}
+                        />
+                      </label>
+                    </div>
 
-                <button
-                  className="btn p"
-                  type="submit"
-                  disabled={submitting}
-                  style={{ justifyContent: 'center' }}
-                >
-                  {submitting ? 'Submitting...' : 'Get started'}
-                </button>
+                    <label htmlFor="who">
+                      I am a
+                      <select id="who" value={who} onChange={(e) => setWho(e.target.value)}>
+                        <option value="owner">Business owner</option>
+                        <option value="agency">Agency managing clients</option>
+                      </select>
+                    </label>
 
-                {formSuccess && (
-                  <div className="ok" id="ok" role="status">
-                    Thanks! We have your details. We will message you on WhatsApp within one working day with your sign-in link.
-                  </div>
+                    <label htmlFor="biz" id="bizl">
+                      {who === 'agency' ? 'Agency name' : 'Business name'}
+                      <input
+                        id="biz"
+                        name="biz"
+                        autoComplete="organization"
+                        required
+                        value={biz}
+                        onChange={(e) => setBiz(e.target.value)}
+                      />
+                    </label>
+
+                    <label htmlFor="eml">
+                      Email
+                      <input
+                        id="eml"
+                        name="eml"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={eml}
+                        onChange={(e) => setEml(e.target.value)}
+                      />
+                    </label>
+
+                    <label htmlFor="tel">
+                      WhatsApp number
+                      <input
+                        id="tel"
+                        name="tel"
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        placeholder="10-digit mobile number"
+                        required
+                        value={tel}
+                        onChange={(e) => setTel(e.target.value)}
+                      />
+                    </label>
+
+                    <label htmlFor="plan">
+                      Plan
+                      <select id="plan" value={plan} onChange={(e) => setPlan(e.target.value)}>
+                        <option value="yearly">Yearly · first 3 months free · ₹5,391</option>
+                        <option value="monthly">Monthly · ₹599 per month</option>
+                      </select>
+                    </label>
+
+                    <label htmlFor="cat">
+                      Type of business
+                      <select id="cat" value={cat} onChange={(e) => setCat(e.target.value)}>
+                        <option>Salon or spa</option>
+                        <option>Restaurant or café</option>
+                        <option>Clinic</option>
+                        <option>Retail</option>
+                        <option>Other</option>
+                      </select>
+                    </label>
+
+                    {formErr && (
+                      <div id="err" style={{ color: 'var(--red, #c8442f)', fontSize: 14, fontWeight: 600 }} role="alert">
+                        {formErr}
+                      </div>
+                    )}
+
+                    <button
+                      className="btn p"
+                      type="submit"
+                      disabled={submitting}
+                      style={{ justifyContent: 'center' }}
+                    >
+                      {submitting ? 'Submitting...' : 'Get started'}
+                    </button>
+                  </>
                 )}
               </form>
             </div>

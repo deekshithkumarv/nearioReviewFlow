@@ -1,99 +1,123 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Languages,
+  MapPin,
+  Menu,
+  QrCode,
+  Reply,
+  TrendingUp,
+  UtensilsCrossed,
+} from 'lucide-react';
+import Logo from './ui/Logo';
+import Modal from './ui/Modal';
+import Reveal, { RevealItem } from './ui/Reveal';
 import HeroPhoneMockup from './HeroPhoneMockup';
-import { CookieSettingsButton } from './CookieConsent';
+import Pricing from './landing/Pricing';
+import Faq from './landing/Faq';
+import SignupForm from './landing/SignupForm';
+import SiteFooter from './landing/SiteFooter';
+import s from './landing/landing.module.css';
 
 const SECTION_IDS = ['how', 'features', 'agencies', 'pricing', 'honest', 'faq', 'start'];
 
-const FAQ_ITEMS = [
+const DESKTOP_NAV = [
+  { id: 'how', label: 'How it works' },
+  { id: 'features', label: 'Features' },
+  { id: 'agencies', label: 'For agencies' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'faq', label: 'FAQ' },
+];
+
+const DRAWER_NAV = [
+  { id: 'how', label: 'How it works' },
+  { id: 'features', label: 'Features' },
+  { id: 'honest', label: 'Honest reviews' },
+  { id: 'agencies', label: 'For agencies' },
+  { id: 'pricing', label: 'Pricing' },
+  { id: 'faq', label: 'FAQ' },
+];
+
+const STEPS = [
   {
-    q: 'Do you only send happy customers to Google?',
-    a: 'No. That is review gating and Google does not allow it. Every customer sees the same Google review option after sending feedback.',
+    title: 'A customer scans or taps',
+    body: 'A QR card on your counter or a TapReview stand opens a short feedback page in their browser. No app, no sign-up, in English, Hindi or Kannada.',
   },
   {
-    q: 'Does Neario write reviews for my customers?',
-    a: 'No. Customers write and post their own Google reviews. The tool can help tidy grammar in a customer’s own words, but never changes what they meant.',
+    title: 'You read it in your dashboard',
+    body: 'Ratings, services and comments, sorted by location and date. Private feedback stays private. It is never posted anywhere.',
   },
   {
-    q: 'How does yearly billing work?',
-    a: 'You pay one bill of ₹5,391, which covers 9 months at ₹599. The first 3 months are free, so you use Neario for the full 12 months.',
-  },
-  {
-    q: 'Do I pay GST on top?',
-    a: 'No. The price you see is the price you pay. No GST is added right now.',
-  },
-  {
-    q: 'Can I get a refund on the yearly plan?',
-    a: 'Yes, if you ask within 7 days of paying. We refund the full ₹5,391. After 7 days the yearly payment is not refundable.',
-  },
-  {
-    q: 'I run an agency. How do I pay?',
-    a: 'Each of your clients pays Neario directly and has their own login. You are not billed for them. Your agency name appears on the reports and QR cards you prepare.',
-  },
-  {
-    q: 'Do my customers need to install an app?',
-    a: 'No. They scan a QR code or tap a stand and the page opens in their browser.',
-  },
-  {
-    q: 'What is a TapReview device?',
-    a: 'A small stand that opens the same feedback page as the QR code when a phone is tapped on it.',
-  },
-  {
-    q: 'Can the replies post automatically?',
-    a: 'You can approve each reply yourself. Automatic replies are optional and come with limits you set, such as holding low-rated reviews for your approval.',
-  },
-  {
-    q: 'Which languages can customers use?',
-    a: 'The feedback page is available in English, Hindi and Kannada.',
+    title: 'You decide what to fix',
+    body: 'Growth Radar groups what customers write into themes, so you can see what is working and what keeps coming up.',
   },
 ];
 
+const FEATURES = [
+  { icon: QrCode, title: 'QR cards and tap stands', body: 'One feedback page per location, ready to print or to put on a TapReview stand.' },
+  { icon: TrendingUp, title: 'Rating trends', body: 'Daily, weekly and monthly averages, with the full spread of ratings behind them.' },
+  { icon: Reply, title: 'Google review replies', body: 'Draft a reply, edit it, approve it. Nothing goes out without you.' },
+  { icon: Languages, title: 'Three languages', body: 'Customers pick English, हिन्दी or ಕನ್ನಡ on the feedback page.' },
+  { icon: MapPin, title: 'Services and branches', body: 'Compare a haircut with a facial, or one branch with another.' },
+];
+
+const RADAR_EXAMPLE = [
+  { tone: 'praise', label: 'Praise', text: 'Staff are friendly and patient' },
+  { tone: 'attention', label: 'Keeps coming up', text: 'Waiting time on weekends' },
+  { tone: 'idea', label: 'Asked for', text: 'Reminders before appointments' },
+];
+
+const HONEST_RULES = [
+  { title: 'No review gating', body: 'The same Google link goes to every customer, whatever they rated.' },
+  { title: 'Customers write their own words', body: 'Neario never invents experiences or writes reviews for anyone.' },
+  { title: 'Private feedback stays private', body: 'It is labelled private and never shown as a published Google review.' },
+];
+
+const DINEOUT_FLOW = [
+  { title: 'Scan', body: 'Guest scans the table QR' },
+  { title: 'Order', body: 'Orders and pays on their phone' },
+  { title: 'Eat', body: 'The kitchen gets the order' },
+  { title: 'Feedback', body: 'A short page opens after the meal' },
+];
+
+const AGENCY_STEPS = [
+  { title: 'Join', body: 'Neario sets up your agency account.' },
+  { title: 'Add clients', body: 'Invite each business owner, with their permission.' },
+  { title: 'Client pays', body: 'Each client pays Neario directly. You are not billed.' },
+  { title: 'You manage', body: 'Open any client’s dashboard and send them reports.' },
+];
+
+// Fixed 7x7 pattern for the decorative QR card (not a scannable code).
+const QR_CELLS = '1110101100101110101011011010100011101110010111011'.split('');
+
+function isModifiedClick(e) {
+  return e && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1);
+}
+
 export default function LandingPage({ initialSection = 'top' }) {
   const [plan, setPlan] = useState('yearly');
-  const [openFaq, setOpenFaq] = useState(null);
   const [who, setWho] = useState('owner');
-  const [biz, setBiz] = useState('');
-  const [eml, setEml] = useState('');
-  const [tel, setTel] = useState('');
-  const [cat, setCat] = useState('Salon or spa');
-  const [honeypot, setHoneypot] = useState('');
-  const [formErr, setFormErr] = useState('');
-  const [formSuccess, setFormSuccess] = useState(false);
-  const [resetCountdown, setResetCountdown] = useState(20);
-  const [submitting, setSubmitting] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+  const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(initialSection);
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const menuOpenRef = useRef(false);
+  menuOpenRef.current = menuOpen;
 
-  useEffect(() => {
-    if (!formSuccess) return;
-    setResetCountdown(20);
-    const interval = setInterval(() => {
-      setResetCountdown((prev) => (prev > 1 ? prev - 1 : 0));
-    }, 1000);
-    const timer = setTimeout(() => {
-      setFormSuccess(false);
-    }, 20000);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timer);
-    };
-  }, [formSuccess]);
-
-  const scrollToSection = (sectionId, behavior = 'smooth') => {
+  const scrollToSection = useCallback((sectionId, behavior = 'smooth') => {
     if (!sectionId || sectionId === 'top') {
       window.scrollTo({ top: 0, behavior });
       return;
     }
     const el = document.getElementById(sectionId);
     if (el) el.scrollIntoView({ behavior, block: 'start' });
-  };
+  }, []);
 
+  // Initial section from the route, legacy /#section hashes, and back/forward.
   useEffect(() => {
-    // Clean any legacy /#section hash into clean path /section
     const rawHash = (window.location.hash || '').replace(/^#/, '');
     if (rawHash && SECTION_IDS.includes(rawHash)) {
       window.history.replaceState({ section: rawHash }, '', '/' + rawHash);
@@ -112,853 +136,406 @@ export default function LandingPage({ initialSection = 'top' }) {
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [initialSection]);
+  }, [initialSection, scrollToSection]);
 
-  function handleSectionNav(e, sectionId) {
-    if (e) e.preventDefault();
-    closeMobileMenu();
-    const targetUrl = sectionId === 'top' ? '/' : '/' + sectionId;
-    if (window.location.pathname !== targetUrl || window.location.hash) {
-      window.history.pushState({ section: sectionId }, '', targetUrl);
-    }
-    setActiveSection(sectionId);
-    scrollToSection(sectionId, 'smooth');
-  }
-
+  // Highlight the nav item for the section being read (does not touch the URL).
   useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [mobileMenuOpen]);
+    if (typeof IntersectionObserver === 'undefined') return;
+    const ids = ['hero', ...SECTION_IDS, 'dineout'];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const id = entry.target.id;
+          setActiveSection(id === 'hero' ? 'top' : id);
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
 
-  const pricingData = {
-    monthly: {
-      n: 'Monthly',
-      a: '₹599',
-      u: 'per month',
-      d: 'Billed every month. Choose yearly instead and your first 3 months are free.',
-      c: 'Get started with monthly',
-      note: 'Prices are final. No GST is added.',
-    },
-    yearly: {
-      n: 'Yearly',
-      a: '₹5,391',
-      s: '₹7,188',
-      u: 'one bill for the year',
-      d: 'You pay for 9 months and use Neario for 12. That is about ₹449 a month, and you save ₹1,797.',
-      c: 'Get started with yearly',
-      note: 'Prices are final. No GST is added. Yearly plan: full refund if you ask within 7 days of paying.',
-    },
-  };
-
-  const curPrice = pricingData[plan];
-
-  async function handleFormSubmit(e) {
-    e.preventDefault();
-    setFormErr('');
-
-    const bizTrim = biz.trim();
-    const emlTrim = eml.trim();
-    const telTrim = tel.trim();
-    const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const PHONE_RE = /^\d{10}$/;
-
-    if (!['owner', 'agency'].includes(who)) {
-      setFormErr('Please select whether you are a business owner or an agency.');
-      return;
-    }
-    if (!bizTrim) {
-      setFormErr(who === 'agency' ? 'Enter your agency name.' : 'Enter your business name.');
-      return;
-    }
-    if (bizTrim.length < 2 || !/[a-zA-Z0-9\u0900-\u097F\u0C80-\u0CFF]/.test(bizTrim)) {
-      setFormErr(
-        who === 'agency'
-          ? 'Enter a valid agency name (at least 2 characters).'
-          : 'Enter a valid business name (at least 2 characters).'
-      );
-      return;
-    }
-    if (!emlTrim || !EMAIL_RE.test(emlTrim)) {
-      setFormErr('Enter a valid email address, like name@business.com.');
-      return;
-    }
-    if (!PHONE_RE.test(telTrim) || /^0{10}$/.test(telTrim)) {
-      setFormErr('Enter a valid 10-digit WhatsApp number.');
-      return;
-    }
-    if (!['yearly', 'monthly'].includes(plan)) {
-      setFormErr('Please select a valid plan.');
-      return;
-    }
-    if (!cat.trim()) {
-      setFormErr('Please select a business type.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: who,
-          name: bizTrim,
-          email: emlTrim,
-          phone: telTrim,
-          plan,
-          type: cat,
-          company_url: honeypot,
-        }),
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(data.error || 'Something went wrong. Please try again.');
+  const handleSectionNav = useCallback(
+    (e, sectionId) => {
+      if (isModifiedClick(e)) return;
+      if (e) e.preventDefault();
+      const fromMenu = menuOpenRef.current;
+      setMenuOpen(false);
+      const targetUrl = sectionId === 'top' ? '/' : '/' + sectionId;
+      if (window.location.pathname !== targetUrl || window.location.hash) {
+        window.history.pushState({ section: sectionId }, '', targetUrl);
       }
+      setActiveSection(sectionId);
+      const go = () => {
+        scrollToSection(sectionId, 'smooth');
+        // Move focus with the scroll so keyboard and screen reader users land in the section.
+        const el = sectionId === 'top' ? null : document.getElementById(sectionId);
+        if (el) el.focus({ preventScroll: true });
+      };
+      // Let the drawer close (and hand focus back) before scrolling.
+      if (fromMenu) requestAnimationFrame(() => requestAnimationFrame(go));
+      else go();
+    },
+    [scrollToSection]
+  );
 
-      setFormSuccess(true);
-      setBiz('');
-      setEml('');
-      setTel('');
-    } catch (err) {
-      setFormErr(err.message || 'Could not submit your details. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  const navLink = (id, label, className) => (
+    <a
+      key={id}
+      href={'/' + id}
+      className={className}
+      aria-current={activeSection === id ? 'true' : undefined}
+      onClick={(e) => handleSectionNav(e, id)}
+    >
+      {label}
+    </a>
+  );
 
   return (
     <>
-      {/* SVG Symbols */}
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
-        <defs>
-          <symbol id="qr" viewBox="0 0 24 24">
-            <rect x="3.5" y="3.5" width="6" height="6" rx="1.5" />
-            <rect x="14.5" y="3.5" width="6" height="6" rx="1.5" />
-            <rect x="3.5" y="14.5" width="6" height="6" rx="1.5" />
-            <path d="M14.5 14.5h3v3M20.5 14.5v0M14.5 20.5h3M20.5 17.5v3" />
-          </symbol>
-          <symbol id="radar" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <circle cx="12" cy="12" r="4.5" />
-            <path d="M12 12 18 6" />
-          </symbol>
-          <symbol id="reply" viewBox="0 0 24 24">
-            <path d="M9 7 4 12l5 5M4 12h10a6 6 0 0 1 6 6" />
-          </symbol>
-          <symbol id="trend" viewBox="0 0 24 24">
-            <path d="M3 17 9 11l4 4 8-9M15 6h6v6" />
-          </symbol>
-          <symbol id="globe" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
-          </symbol>
-          <symbol id="pin" viewBox="0 0 24 24">
-            <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" />
-            <circle cx="12" cy="9.5" r="2.5" />
-          </symbol>
-          <symbol id="ck" viewBox="0 0 24 24">
-            <path d="m5 12.5 4.5 4.5L19 7.5" />
-          </symbol>
-        </defs>
-      </svg>
-
-      {/* Top Announcement Bar */}
-      <div className="promo" role="note">
-        <b>First 3 months free</b> on the yearly plan. Pay for 9 months, use Neario for 12.
-        <a href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>See the offer</a>
+      <div className={s.promo} role="note">
+        <div className={`container ${s.promoInner}`}>
+          <span>
+            <strong>First 3 months free on the yearly plan.</strong>{' '}
+            <span className={s.promoMore}>Pay for 9 months, use Neario for 12.</span>
+          </span>
+          <a href="/pricing" className={s.promoLink} onClick={(e) => handleSectionNav(e, 'pricing')}>
+            See pricing
+            <ArrowRight aria-hidden="true" />
+          </a>
+        </div>
       </div>
 
-      {/* Navigation Header */}
-      <div className="in">
-        <header className="nav">
-          <Link className="brand" href="/" onClick={(e) => handleSectionNav(e, 'top')} aria-label="Neario ReviewFlow home">
-            <span className="mark" aria-hidden="true">N</span>
-            <span className="wm">
-              <b>neario</b>
-              <small>REVIEWFLOW</small>
-            </span>
-          </Link>
+      <header className={s.header}>
+        <div className={`container ${s.headerInner}`}>
+          <Logo onClick={(e) => handleSectionNav(e, 'top')} />
 
-          {/* Desktop Navigation */}
-          <nav className="links desktop-links" aria-label="Page sections">
-            <a href="/how" className={activeSection === 'how' ? 'active' : ''} onClick={(e) => handleSectionNav(e, 'how')}>How it works</a>
-            <a href="/features" className={activeSection === 'features' ? 'active' : ''} onClick={(e) => handleSectionNav(e, 'features')}>Features</a>
-            <a href="/agencies" className={activeSection === 'agencies' ? 'active' : ''} onClick={(e) => handleSectionNav(e, 'agencies')}>For agencies</a>
-            <a href="/pricing" className={activeSection === 'pricing' ? 'active' : ''} onClick={(e) => handleSectionNav(e, 'pricing')}>Pricing</a>
-            <a href="/demo/overview" style={{ display: 'inline-flex', alignItems: 'center' }}>
-              Dashboard
-              <span className="nav-badge demo">DEMO</span>
-            </a>
-            <Link className="si" href="/login">
-              Sign in
-            </Link>
-            <a className="btn p" href="/start" onClick={(e) => handleSectionNav(e, 'start')}>
-              Get 3 months free
+          <nav className={s.desktopNav} aria-label="Page sections">
+            {DESKTOP_NAV.map((item) => navLink(item.id, item.label, s.navLink))}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- the demo needs a full page load */}
+            <a href="/demo/overview" className={s.navLink}>
+              Demo
             </a>
           </nav>
 
-          {/* Mobile Navigation Toggle */}
-          <div className="mobile-nav-toggle">
-            <Link className="mobile-si" href="/login">
+          <div className={s.headerActions}>
+            <Link href="/login" className={`btn btn-ghost ${s.signIn}`}>
               Sign in
             </Link>
-            <a className="btn p btn-sm mobile-cta" href="/start" onClick={(e) => handleSectionNav(e, 'start')}>
-              3 months free
+            <a href="/start" className={`btn btn-primary ${s.headerCta}`} onClick={(e) => handleSectionNav(e, 'start')}>
+              <span className={s.ctaLong}>Get 3 months free</span>
+              <span className={s.ctaShort}>Start free</span>
             </a>
             <button
               type="button"
-              className="nav-burger"
-              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={mobileMenuOpen}
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`btn btn-ghost btn-icon ${s.menuBtn}`}
+              aria-label="Open menu"
+              aria-haspopup="dialog"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
             >
-              {mobileMenuOpen ? (
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <line x1="4" y1="7" x2="20" y2="7" />
-                  <line x1="4" y1="12" x2="20" y2="12" />
-                  <line x1="4" y1="17" x2="20" y2="17" />
-                </svg>
-              )}
+              <Menu aria-hidden="true" />
             </button>
           </div>
-        </header>
-      </div>
-
-      {/* Mobile Navigation Drawer */}
-      {mobileMenuOpen && (
-        <div className="mobile-drawer" role="dialog" aria-modal="true" aria-label="Mobile navigation">
-          <div className="mobile-drawer-back" onClick={closeMobileMenu} />
-          <div className="mobile-drawer-box">
-            <div className="mobile-drawer-head">
-              <Link className="brand" href="/" onClick={(e) => handleSectionNav(e, 'top')}>
-                <span className="mark" aria-hidden="true">N</span>
-                <span className="wm">
-                  <b>neario</b>
-                  <small>REVIEWFLOW</small>
-                </span>
-              </Link>
-              <button
-                type="button"
-                className="mobile-drawer-close"
-                aria-label="Close menu"
-                onClick={closeMobileMenu}
-              >
-                ✕
-              </button>
-            </div>
-
-            <a className="btn p full-btn" href="/start" onClick={(e) => handleSectionNav(e, 'start')}>
-              Get 3 months free
-            </a>
-
-            <div className="mobile-drawer-sec">Navigation</div>
-            <nav className="mobile-drawer-links" aria-label="Mobile page sections">
-              <a href="/how" onClick={(e) => handleSectionNav(e, 'how')}>
-                <span>How it works</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a href="/features" onClick={(e) => handleSectionNav(e, 'features')}>
-                <span>Features</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a href="/agencies" onClick={(e) => handleSectionNav(e, 'agencies')}>
-                <span>For agencies</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>
-                <span>Pricing</span>
-                <span aria-hidden="true">→</span>
-              </a>
-              <a href="/faq" onClick={(e) => handleSectionNav(e, 'faq')}>
-                <span>FAQ</span>
-                <span aria-hidden="true">→</span>
-              </a>
-            </nav>
-
-            <div className="mobile-drawer-sec">Portals & Demo</div>
-            <nav className="mobile-drawer-links" aria-label="Mobile portals">
-              <a href="/demo/overview" onClick={closeMobileMenu}>
-                <span>Dashboard Demo</span>
-                <span className="badge green">Demo</span>
-              </a>
-              <Link href="/feedback/demo-cafe-1" onClick={closeMobileMenu}>
-                <span>Customer Feedback QR</span>
-                <span className="badge orange">Try QR</span>
-              </Link>
-              <Link href="/login" onClick={closeMobileMenu}>
-                <span>Client & Agency Sign In</span>
-                <span aria-hidden="true">→</span>
-              </Link>
-              <Link href="/onboarding" onClick={closeMobileMenu}>
-                <span>Setup & QR Wizard</span>
-                <span className="badge purple">Wizard</span>
-              </Link>
-              <Link href="/admin" onClick={closeMobileMenu}>
-                <span>Super Admin Console</span>
-                <span className="badge sage">Admin</span>
-              </Link>
-              <Link
-                href="/login"
-                onClick={closeMobileMenu}
-                style={{ fontWeight: 700, color: 'var(--primary)' }}
-              >
-                <span>Sign In to Account</span>
-                <span aria-hidden="true">→</span>
-              </Link>
-            </nav>
-          </div>
         </div>
-      )}
+      </header>
 
-      {/* Main Content Area */}
-      <main id="top">
-        {/* Hero Section */}
-        <section className="in hero">
-          <div>
-            <a className="burst" href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>
-              <b>First 3 months free</b>
-              <span>Yearly plan: pay for 9 months, use 12</span>
-            </a>
-            <div className="kick">Feedback and Google reviews for local businesses</div>
-            <h1>
-              Hear every customer. <em>Grow</em> from what they say.
-            </h1>
-            <p className="lead">
-              Customers scan a QR code or tap a stand, leave feedback in their own language, and every one of them can also post a Google review. Neario turns what they write into clear next steps.
-            </p>
-            <div className="cta">
-              <a className="btn p" href="/start" onClick={(e) => handleSectionNav(e, 'start')}>
-                Get 3 months free
+      <Modal open={menuOpen} onClose={() => setMenuOpen(false)} title="Menu" variant="drawer" closeLabel="Close menu">
+        <nav aria-label="Site" className={s.drawerNav}>
+          <ul className={s.drawerList}>
+            {DRAWER_NAV.map((item) => (
+              <li key={item.id}>{navLink(item.id, item.label, s.drawerLink)}</li>
+            ))}
+          </ul>
+          <p className={s.drawerLabel}>Try it yourself</p>
+          <ul className={s.drawerList}>
+            <li>
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- the demo needs a full page load */}
+              <a href="/demo/overview" className={s.drawerLink}>
+                Dashboard demo
+                <ArrowUpRight aria-hidden="true" />
               </a>
-              <a className="btn s" href="/how" onClick={(e) => handleSectionNav(e, 'how')}>
-                See how it works
-              </a>
-            </div>
-            <p className="fine">
-              Yearly plan: one bill of ₹5,391 covers 12 months. Prefer monthly? It is ₹599 a month.
-            </p>
-          </div>
+            </li>
+            <li>
+              <Link href="/feedback/demo-cafe-1" className={s.drawerLink} onClick={() => setMenuOpen(false)}>
+                Try the customer page
+                <ArrowUpRight aria-hidden="true" />
+              </Link>
+            </li>
+            <li>
+              <Link href="/login" className={s.drawerLink} onClick={() => setMenuOpen(false)}>
+                Sign in
+                <ArrowRight aria-hidden="true" />
+              </Link>
+            </li>
+          </ul>
+          <a href="/start" className="btn btn-primary btn-lg btn-block" onClick={(e) => handleSectionNav(e, 'start')}>
+            Get 3 months free
+          </a>
+        </nav>
+      </Modal>
 
-          <HeroPhoneMockup />
-        </section>
-
-        {/* How It Works (Three Steps) */}
-        <section className="sec" id="how">
-          <div className="in">
-            <div className="head">
-              <h2>From a scan to a decision in three steps</h2>
-              <p>No app to install for your customers. No spreadsheet for you.</p>
-            </div>
-            <div className="steps">
-              <div className="step">
-                <span className="n">1</span>
-                <h3>Customer scans or taps</h3>
-                <p>
-                  A QR code on the counter or a TapReview stand opens a short feedback page in English, Hindi or Kannada.
-                </p>
+      <main id="main" className={s.main}>
+        {/* Hero */}
+        <section id="hero" className={s.hero} aria-labelledby="hero-title">
+          <div className={`container ${s.heroGrid}`}>
+            <div className={s.heroCopy}>
+              <p className="eyebrow">For salons, clinics, cafés and shops</p>
+              <h1 id="hero-title" className={s.heroTitle}>
+                Find out how every visit <span className={s.heroUnderline}>really</span> went.
+              </h1>
+              <p className={s.heroLead}>
+                Customers scan a QR code or tap a stand at your counter, rate their visit in English, Hindi or Kannada,
+                and add a note if they like. You read it all in one place, and every customer gets the same link to
+                review you on Google.
+              </p>
+              <div className={s.heroActions}>
+                <a href="/start" className="btn btn-primary btn-lg" onClick={(e) => handleSectionNav(e, 'start')}>
+                  Get 3 months free
+                  <ArrowRight aria-hidden="true" />
+                </a>
+                <a href="/how" className="btn btn-lg" onClick={(e) => handleSectionNav(e, 'how')}>
+                  See how it works
+                </a>
               </div>
-              <div className="step">
-                <span className="n">2</span>
-                <h3>Feedback lands in your dashboard</h3>
-                <p>
-                  Ratings, services and comments are organised by location and date. Private feedback stays private.
-                </p>
-              </div>
-              <div className="step">
-                <span className="n">3</span>
-                <h3>You act on clear insights</h3>
-                <p>
-                  The Growth Radar groups what customers say into themes, shows the trend, and suggests what to do next.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Grid */}
-        <section className="sec" id="features" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="head">
-              <h2>Everything a local business needs, nothing it doesn’t</h2>
-            </div>
-            <div className="feat">
-              <div className="f">
-                <svg><use href="#qr" /></svg>
-                <h3>QR codes and tap stands</h3>
-                <p>One feedback page per location, ready to print or tap.</p>
-              </div>
-              <div className="f">
-                <svg><use href="#radar" /></svg>
-                <h3>AI Business Growth Radar</h3>
-                <p>Complaints, praise and recurring themes from real feedback, each with the number of entries behind it.</p>
-              </div>
-              <div className="f">
-                <svg><use href="#trend" /></svg>
-                <h3>Rating trends</h3>
-                <p>Daily, weekly and monthly averages with the full rating spread.</p>
-              </div>
-              <div className="f">
-                <svg><use href="#reply" /></svg>
-                <h3>Google review replies</h3>
-                <p>Draft a personal reply, edit it, approve it. Nothing goes out without you.</p>
-              </div>
-              <div className="f">
-                <svg><use href="#globe" /></svg>
-                <h3>Customer languages</h3>
-                <p>The feedback page speaks English, Hindi and Kannada.</p>
-              </div>
-              <div className="f">
-                <svg><use href="#pin" /></svg>
-                <h3>Many services and locations</h3>
-                <p>Compare haircut with facial, or one branch with another.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Honest Reviews Band */}
-        <section className="sec" id="honest" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="band">
-              <div>
-                <div className="kick" style={{ color: '#9bd8ab' }}>Built for honest reviews</div>
-                <h2>Every customer gets the same chance to review you on Google.</h2>
-                <p>
-                  Google’s policies forbid steering only happy customers to a review page. Neario is built the other way round, so your profile stays safe and your reviews stay believable.
-                </p>
-              </div>
-              <ul className="rules">
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  <div>
-                    <b>No review gating</b>
-                    The same Google link goes to every customer, whatever their rating.
-                  </div>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  <div>
-                    <b>Customers write their own words</b>
-                    Neario never invents experiences or reviews.
-                  </div>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  <div>
-                    <b>Private feedback is labelled private</b>
-                    It is never shown as a published Google review.
-                  </div>
-                </li>
+              <ul className={s.heroFacts}>
+                <li>No app for your customers</li>
+                <li>₹599 a month, or ₹5,391 for the year</li>
+                <li>No GST added</li>
               </ul>
             </div>
+            <div className={s.heroVisual}>
+              <HeroPhoneMockup />
+            </div>
           </div>
         </section>
 
-        {/* Planned with Neario Dineout */}
-        <section className="sec" id="dineout" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="dine">
+        {/* How it works */}
+        <section id="how" tabIndex={-1} className={s.section} aria-labelledby="how-title">
+          <div className="container">
+            <div className={s.splitHead}>
               <div>
-                <div className="kick">Planned with Neario Dineout</div>
-                <h2>One table QR. Order first, feedback after.</h2>
-                <p>
-                  For restaurants and cafés, the same QR on the table can take a guest from ordering to a short feedback page once the meal is done. Neario Dineout is the ordering side. This bundle is in planning and is not available yet.
-                </p>
+                <p className="eyebrow">How it works</p>
+                <h2 id="how-title" className={s.h2}>From a scan at the counter to a clear next step</h2>
               </div>
-              <ol className="flow" aria-label="Table QR flow">
-                <li><b>Scan</b>Guest scans the table QR</li>
-                <li><b>Order</b>Orders and pays on their phone</li>
-                <li><b>Eat</b>Kitchen gets the order</li>
-                <li><b>Feedback</b>Short page opens after the meal</li>
-              </ol>
+              <p className={s.splitHeadText}>
+                Nothing for your customers to install. No spreadsheet for you. Your QR card works from the day it is
+                printed.
+              </p>
             </div>
+            <Reveal as="ol" stagger className={s.steps}>
+              {STEPS.map((step, i) => (
+                <RevealItem as="li" key={step.title} className={s.step}>
+                  <span className={s.stepNum} aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h3 className={s.h3}>{step.title}</h3>
+                  <p className={s.body}>{step.body}</p>
+                </RevealItem>
+              ))}
+            </Reveal>
           </div>
         </section>
 
-        {/* For Agencies */}
-        <section className="sec" id="agencies" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="dine">
-              <div>
-                <div className="kick">For agencies</div>
-                <h2>Run feedback for all your clients from one login.</h2>
-                <p>
-                  Marketing agencies can add their clients to Neario and look after each one from a single place. Every client gets their own login and pays Neario directly, so there is nothing to invoice. Your agency name appears on the reports and QR cards you prepare, next to the Neario name.
-                </p>
-              </div>
-              <ol className="flow" aria-label="How agencies work">
-                <li><b>Join</b>Neario sets up your agency</li>
-                <li><b>Add clients</b>Invite each business owner</li>
-                <li><b>Client pays</b>Each client pays Neario directly</li>
-                <li><b>You manage</b>See each client dashboard and send reports</li>
-              </ol>
+        {/* Features */}
+        <section id="features" tabIndex={-1} className={`${s.section} ${s.sectionTint}`} aria-labelledby="features-title">
+          <div className="container">
+            <div className={s.featuresHead}>
+              <p className="eyebrow">Features</p>
+              <h2 id="features-title" className={s.h2}>Small enough to check between customers</h2>
             </div>
-            <p style={{ margin: '14px 0 0', color: 'var(--muted)', fontSize: 14 }}>
-              Agencies follow the same Google rules as everyone: no review gating, the same Google link for every customer, and replies approved by the owner.{' '}
-              <a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Tell us you are an agency</a>.
-            </p>
-          </div>
-        </section>
-
-        {/* Pricing Section */}
-        <section className="sec" id="pricing">
-          <div className="in">
-            <div className="head" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ maxWidth: 'none' }}>Two ways to pay</h2>
-              <p>Everything is included either way. Choose monthly, or pay once for the year and get 3 months free.</p>
-            </div>
-
-            <div className="seg" role="radiogroup" aria-label="Billing">
-              <button
-                type="button"
-                role="radio"
-                id="pm"
-                aria-checked={plan === 'monthly'}
-                onClick={() => setPlan('monthly')}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                role="radio"
-                id="py"
-                aria-checked={plan === 'yearly'}
-                onClick={() => setPlan('yearly')}
-              >
-                Yearly <span className="save">3 months free</span>
-              </button>
-            </div>
-
-            <div className="price">
-              {plan === 'yearly' && <div className="ribbon" id="pr">First 3 months free</div>}
-              <div>
-                <div className="kick" style={{ margin: 0 }}>
-                  Growth Plan · <span id="pn">{curPrice.n}</span>
+            <div className={s.featuresGrid}>
+              <Reveal className={s.radarPanel}>
+                <div className={s.radarPanelHead}>
+                  <h3 className={s.h3}>Growth Radar</h3>
+                  <span className="badge">Example</span>
                 </div>
-                <div className="amt">
-                  <b id="pa">{curPrice.a}</b>
-                  {curPrice.s && (
-                    <s id="ps" aria-label={`instead of ${curPrice.s}`}>
-                      {curPrice.s}
-                    </s>
-                  )}
-                  <span id="pu">{curPrice.u}</span>
-                </div>
-                <p id="pd" className="pdesc">{curPrice.d}</p>
-              </div>
+                <p className={s.body}>
+                  Growth Radar reads the comments customers leave and groups them into themes: what people praise, what
+                  keeps coming up, and what they ask for. Each theme shows the feedback behind it, so you can check it
+                  yourself.
+                </p>
+                <ul className={s.radarList} aria-label="Example themes">
+                  {RADAR_EXAMPLE.map((row) => (
+                    <li key={row.text} className={s.radarRow} data-tone={row.tone}>
+                      <span className={s.radarTag}>{row.label}</span>
+                      <span className={s.radarText}>{row.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className={s.small}>Sample themes for illustration. Yours come from your own customers.</p>
+              </Reveal>
 
-              <ul>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  QR codes and TapReview feedback pages
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  Dashboard with rating trends and service breakdown
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  AI Business Growth Radar
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  Google review reply drafts with your approval
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24"><use href="#ck" /></svg>
-                  English, Hindi and Kannada feedback pages
-                </li>
-              </ul>
-
-              <a className="btn p" id="pc" href="/start" onClick={(e) => handleSectionNav(e, 'start')}>
-                {curPrice.c}
-              </a>
-              <p className="pnote" id="pnote">{curPrice.note}</p>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Accordion */}
-        <section className="sec" id="faq" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="head" style={{ alignItems: 'center', textAlign: 'center' }}>
-              <h2 style={{ maxWidth: 'none' }}>Questions owners ask</h2>
-            </div>
-            <div className="faq">
-              {FAQ_ITEMS.map((item, idx) => {
-                const isOpen = openFaq === idx;
-                return (
-                  <div className="faq-item" key={item.q} data-open={isOpen ? 'true' : 'false'}>
-                    <button
-                      type="button"
-                      className="faq-q"
-                      aria-expanded={isOpen}
-                      onClick={() => setOpenFaq((prev) => (prev === idx ? null : idx))}
-                    >
-                      <span>{item.q}</span>
-                    </button>
-                    {isOpen && <p className="faq-a">{item.a}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Start Collecting Honest Feedback Today */}
-        <section className="sec" id="start" style={{ paddingTop: 20 }}>
-          <div className="in">
-            <div className="signup">
-              <div>
-                <h2>Start collecting honest feedback today</h2>
-                <p>Tell us about your business and we will set up your workspace.</p>
-              </div>
-
-              <form id="f" noValidate onSubmit={handleFormSubmit}>
-                {formSuccess ? (
-                  <div
-                    className="ok"
-                    id="ok"
-                    role="status"
-                    style={{
-                      background: '#dcfce7',
-                      border: '1.5px solid #22c55e',
-                      color: '#166534',
-                      padding: '28px 24px',
-                      borderRadius: '16px',
-                      textAlign: 'center',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      margin: 0,
-                    }}
-                  >
-                    <div style={{ fontSize: '30px', lineHeight: 1, marginBottom: '10px' }}>🎉</div>
-                    <b style={{ display: 'block', fontSize: '18px', color: '#14532d', marginBottom: '8px' }}>
-                      Request Received!
-                    </b>
-                    <p style={{ margin: '0 auto 18px', maxWidth: '38ch', fontSize: '14px', lineHeight: 1.55, color: '#166534', textAlign: 'center' }}>
-                      Thanks! We have your details. Our team will review your business and send your sign-in invite link and setup details via Email or WhatsApp within one working day.
-                    </p>
-                    <button
-                      type="button"
-                      className="btn s btn-sm"
-                      onClick={() => setFormSuccess(false)}
-                      style={{ background: '#ffffff', border: '1px solid #86efac', color: '#15803d' }}
-                    >
-                      Submit another inquiry
-                    </button>
-                    <span style={{ display: 'block', marginTop: '10px', fontSize: '12px', color: '#15803d', opacity: 0.85 }}>
-                      Returning to form in {resetCountdown}s…
+              <Reveal as="ul" stagger className={s.featureList}>
+                {FEATURES.map(({ icon: Icon, title, body }) => (
+                  <RevealItem as="li" key={title} className={s.feature}>
+                    <span className={s.featureIcon}>
+                      <Icon aria-hidden="true" />
                     </span>
-                  </div>
-                ) : (
-                  <>
-                    <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', top: 'auto', width: 1, height: 1, overflow: 'hidden' }}>
-                      <label>
-                        Do not fill this in
-                        <input
-                          name="company_url"
-                          tabIndex={-1}
-                          autoComplete="off"
-                          value={honeypot}
-                          onChange={(e) => setHoneypot(e.target.value)}
-                        />
-                      </label>
+                    <div>
+                      <h3 className={s.h4}>{title}</h3>
+                      <p className={s.body}>{body}</p>
                     </div>
-
-                    <label htmlFor="who">
-                      I am a
-                      <select
-                        id="who"
-                        value={who}
-                        onChange={(e) => {
-                          setWho(e.target.value);
-                          if (formErr) setFormErr('');
-                        }}
-                      >
-                        <option value="owner">Business owner</option>
-                        <option value="agency">Agency managing clients</option>
-                      </select>
-                    </label>
-
-                    <label htmlFor="biz" id="bizl">
-                      {who === 'agency' ? 'Agency name' : 'Business name'}
-                      <input
-                        id="biz"
-                        name="biz"
-                        autoComplete="organization"
-                        maxLength={100}
-                        minLength={2}
-                        placeholder={who === 'agency' ? 'e.g. Pixel & Co Marketing' : 'e.g. The Green House'}
-                        required
-                        value={biz}
-                        onChange={(e) => {
-                          setBiz(e.target.value);
-                          if (formErr) setFormErr('');
-                        }}
-                      />
-                    </label>
-
-                    <label htmlFor="eml">
-                      Email
-                      <input
-                        id="eml"
-                        name="eml"
-                        type="email"
-                        autoComplete="email"
-                        maxLength={254}
-                        placeholder="you@business.com"
-                        required
-                        value={eml}
-                        onChange={(e) => {
-                          setEml(e.target.value);
-                          if (formErr) setFormErr('');
-                        }}
-                      />
-                    </label>
-
-                    <label htmlFor="tel">
-                      WhatsApp number
-                      <input
-                        id="tel"
-                        name="tel"
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        pattern="\d{10}"
-                        autoComplete="tel"
-                        placeholder="10-digit mobile number"
-                        required
-                        value={tel}
-                        onChange={(e) => {
-                          const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setTel(digitsOnly);
-                          if (formErr) setFormErr('');
-                        }}
-                      />
-                    </label>
-
-                    <label htmlFor="plan">
-                      Plan
-                      <select id="plan" value={plan} onChange={(e) => setPlan(e.target.value)}>
-                        <option value="yearly">Yearly · first 3 months free · ₹5,391</option>
-                        <option value="monthly">Monthly · ₹599 per month</option>
-                      </select>
-                    </label>
-
-                    <label htmlFor="cat">
-                      Type of business
-                      <select id="cat" value={cat} onChange={(e) => setCat(e.target.value)}>
-                        <option>Salon or spa</option>
-                        <option>Restaurant or café</option>
-                        <option>Clinic</option>
-                        <option>Retail</option>
-                        <option>Other</option>
-                      </select>
-                    </label>
-
-                    {formErr && (
-                      <div id="err" style={{ color: 'var(--red, #c8442f)', fontSize: 14, fontWeight: 600 }} role="alert">
-                        {formErr}
-                      </div>
-                    )}
-
-                    <button
-                      className="btn p"
-                      type="submit"
-                      disabled={submitting}
-                      style={{ justifyContent: 'center' }}
-                    >
-                      {submitting ? 'Submitting...' : 'Get started'}
-                    </button>
-                  </>
-                )}
-              </form>
+                  </RevealItem>
+                ))}
+              </Reveal>
             </div>
           </div>
+        </section>
+
+        {/* Honest reviews band */}
+        <section id="honest" tabIndex={-1} className={s.band} aria-labelledby="honest-title">
+          <div className={`container ${s.bandGrid}`}>
+            <div>
+              <p className={s.bandEyebrow}>No review gating</p>
+              <h2 id="honest-title" className={s.bandTitle}>
+                Every customer gets the same Google review link. Happy or not.
+              </h2>
+              <p className={s.bandText}>
+                Some tools only send happy customers to Google. That is called review gating. Google’s policies do not
+                allow it, and it makes reviews harder to trust. Neario does the opposite, so your profile stays safe and
+                your reviews stay believable.
+              </p>
+            </div>
+            <Reveal as="ul" stagger className={s.rules}>
+              {HONEST_RULES.map((rule) => (
+                <RevealItem as="li" key={rule.title} className={s.rule}>
+                  <span className={s.ruleIcon}>
+                    <Check aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h3 className={s.ruleTitle}>{rule.title}</h3>
+                    <p>{rule.body}</p>
+                  </div>
+                </RevealItem>
+              ))}
+            </Reveal>
+          </div>
+        </section>
+
+        {/* Planned: Dineout */}
+        <section id="dineout" tabIndex={-1} className={s.sectionSlim} aria-labelledby="dineout-title">
+          <div className="container">
+            <Reveal className={s.dineout}>
+              <div className={s.dineoutHead}>
+                <span className={s.dineoutIcon}>
+                  <UtensilsCrossed aria-hidden="true" />
+                </span>
+                <div>
+                  <div className={s.dineoutMeta}>
+                    <p className="eyebrow">Planned with Neario Dineout</p>
+                    <span className="badge badge-warn">Not available yet</span>
+                  </div>
+                  <h2 id="dineout-title" className={s.h3}>
+                    One table QR: order first, feedback after.
+                  </h2>
+                  <p className={s.body}>
+                    For restaurants and cafés, the same QR on the table could take a guest from ordering to a short
+                    feedback page once the meal is done. Neario Dineout is the ordering side. This bundle is still being
+                    planned and you cannot sign up for it yet.
+                  </p>
+                </div>
+              </div>
+              <ol className={s.flow} aria-label="Planned table QR flow">
+                {DINEOUT_FLOW.map((step, i) => (
+                  <li key={step.title} className={s.flowStep}>
+                    <span className={s.flowNum} aria-hidden="true">
+                      {i + 1}
+                    </span>
+                    <span>
+                      <strong>{step.title}</strong>
+                      {step.body}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* Agencies */}
+        <section id="agencies" tabIndex={-1} className={s.section} aria-labelledby="agencies-title">
+          <div className={`container ${s.agencyGrid}`}>
+            <div className={s.agencyCopy}>
+              <p className="eyebrow">For agencies</p>
+              <h2 id="agencies-title" className={s.h2}>
+                Look after every client’s feedback from one login
+              </h2>
+              <p className={s.lead}>
+                Add the businesses you manage and move between them from one place. Each client has their own login
+                and pays Neario directly, so there is nothing for you to invoice. Your agency’s name appears on the
+                reports and QR cards you prepare, next to the Neario name.
+              </p>
+              <Reveal as="ol" stagger className={s.timeline}>
+                {AGENCY_STEPS.map((step) => (
+                  <RevealItem as="li" key={step.title} className={s.timelineItem}>
+                    <strong>{step.title}</strong>
+                    <span>{step.body}</span>
+                  </RevealItem>
+                ))}
+              </Reveal>
+              <p className={s.small}>
+                Agencies follow the same Google rules as everyone: no review gating, the same Google link for every
+                customer, and replies approved by the owner.{' '}
+                <a
+                  href="/start"
+                  className={s.inlineLink}
+                  onClick={(e) => {
+                    setWho('agency');
+                    handleSectionNav(e, 'start');
+                  }}
+                >
+                  Tell us you are an agency
+                </a>
+              </p>
+            </div>
+
+            <Reveal className={s.qrCardWrap} delay={0.1}>
+              <figure className={s.qrCard}>
+                <figcaption className="visually-hidden">
+                  Example of a printed QR card that shows your agency name next to the Neario name.
+                </figcaption>
+                <div aria-hidden="true">
+                  <p className={s.qrCardBiz}>The Green House Salon</p>
+                  <p className={s.qrCardAsk}>Tell us how your visit went</p>
+                  <div className={s.qrGrid}>
+                    {QR_CELLS.map((c, i) => (
+                      <span key={i} data-on={c === '1' ? 'true' : undefined} />
+                    ))}
+                  </div>
+                  <p className={s.qrCardLangs}>English · हिन्दी · ಕನ್ನಡ</p>
+                  <div className={s.qrCardFoot}>
+                    <span>
+                      Prepared by <strong>Your Agency</strong>
+                    </span>
+                    <span>Neario ReviewFlow</span>
+                  </div>
+                </div>
+              </figure>
+              <span className={`badge ${s.qrBadge}`}>Example card</span>
+            </Reveal>
+          </div>
+        </section>
+
+        {/* Pricing */}
+        <section id="pricing" tabIndex={-1} className={`${s.section} ${s.sectionTint}`} aria-labelledby="pricing-title">
+          <Pricing plan={plan} setPlan={setPlan} onStart={(e) => handleSectionNav(e, 'start')} />
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" tabIndex={-1} className={s.section} aria-labelledby="faq-title">
+          <Faq />
+        </section>
+
+        {/* Sign up */}
+        <section id="start" tabIndex={-1} className={`${s.section} ${s.startSection}`} aria-labelledby="start-title">
+          <SignupForm plan={plan} setPlan={setPlan} who={who} setWho={setWho} />
         </section>
       </main>
 
-      {/* Professional Footer */}
-      <footer className="site-footer">
-        <div className="in">
-          <div className="footer-grid">
-            <div>
-              <a href="/" className="footer-brand-row" onClick={(e) => handleSectionNav(e, 'top')}>
-                <span className="footer-mark" aria-hidden="true">N</span>
-                <span>
-                  <span className="footer-brand-name">neario</span>
-                  <span className="footer-brand-sub">REVIEWFLOW</span>
-                </span>
-              </a>
-              <p className="footer-desc">
-                Turn real in-store smiles into 5-star Google reviews while keeping private customer feedback actionable and 100% Google policy compliant.
-              </p>
-              <div className="footer-pills">
-                <span className="footer-pill">English · हिन्दी · ಕನ್ನಡ</span>
-                <span className="footer-pill">Zero review gating</span>
-              </div>
-            </div>
-
-            <div className="footer-col">
-              <h3>Product</h3>
-              <ul>
-                <li><a href="/how" onClick={(e) => handleSectionNav(e, 'how')}>How it works</a></li>
-                <li><a href="/features" onClick={(e) => handleSectionNav(e, 'features')}>Features</a></li>
-                <li><a href="/honest" onClick={(e) => handleSectionNav(e, 'honest')}>Honest reviews</a></li>
-                <li><a href="/pricing" onClick={(e) => handleSectionNav(e, 'pricing')}>Pricing</a></li>
-                <li><a href="/demo/overview">Interactive Demo</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h3>Solutions</h3>
-              <ul>
-                <li><a href="/agencies" onClick={(e) => handleSectionNav(e, 'agencies')}>For agencies</a></li>
-                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Restaurants &amp; cafés</a></li>
-                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Salons &amp; spas</a></li>
-                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Clinics &amp; retail</a></li>
-                <li><Link href="/login">Partner sign in</Link></li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h3>Support &amp; Legal</h3>
-              <ul>
-                <li><a href="/faq" onClick={(e) => handleSectionNav(e, 'faq')}>FAQ</a></li>
-                <li><a href="/start" onClick={(e) => handleSectionNav(e, 'start')}>Get 3 months free</a></li>
-                <li><Link href="/privacy">Privacy Policy</Link></li>
-                <li><Link href="/terms">Terms of Use</Link></li>
-                <li><CookieSettingsButton className="footer-cookie-btn" /></li>
-                <li><a href="mailto:vdeekshithkumar@gmail.com"></a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="footer-bottom">
-            <div>© 2026 Neario ReviewFlow · Feedback &amp; review management for local businesses.</div>
-            <div className="footer-bottom-links">
-              <span>₹599/mo or ₹5,391/yr (3 months free) · No GST</span>
-              <Link href="/privacy">Privacy</Link>
-              <Link href="/terms">Terms</Link>
-              <CookieSettingsButton className="footer-cookie-btn" style={{ color: 'rgba(255, 255, 255, 0.78)' }}>Cookies</CookieSettingsButton>
-              <Link href="/login">Sign in</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter onNav={handleSectionNav} />
     </>
   );
 }

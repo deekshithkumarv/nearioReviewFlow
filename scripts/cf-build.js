@@ -1,22 +1,20 @@
 import { execSync } from 'child_process';
 
-// Cloudflare Workers CI runs on Linux (Debian / Ubuntu in /opt/buildhome)
-const isCloudflareCI =
-  process.env.CF_PAGES === '1' ||
-  Boolean(process.env.CF_PAGES_COMMIT_SHA) ||
-  (process.env.CI && process.platform === 'linux') ||
-  process.platform === 'linux';
+// Cloudflare's build environment installs dependencies and then runs only the configured build command.
+// When that command is plain `next build`, this postinstall hook is what produces the .open-next worker bundle.
+// It runs ONLY inside Cloudflare builds (Workers Builds sets WORKERS_CI, Pages sets CF_PAGES), never on a
+// developer machine, in Docker, or in other CI.
+const isCloudflareBuild =
+  (process.env.WORKERS_CI === '1' || process.env.CF_PAGES === '1') && process.env.SKIP_OPENNEXT_POSTINSTALL !== '1';
 
-if (isCloudflareCI) {
-  console.log('⚡ Cloudflare CI environment detected. Compiling OpenNext worker bundle before deployment...');
+if (isCloudflareBuild) {
+  console.log('Cloudflare build detected: compiling the OpenNext worker bundle...');
   try {
     execSync('npx opennextjs-cloudflare build', { stdio: 'inherit' });
-    console.log('✅ OpenNext build completed successfully!');
   } catch (err) {
-    console.error('❌ OpenNext build failed:', err.message);
+    console.error('OpenNext build failed:', err.message);
     process.exit(1);
   }
 } else {
-  console.log('ℹ️ Local developer machine detected. Skipping postinstall OpenNext build.');
+  console.log('Skipping the OpenNext build in postinstall (not a Cloudflare build). Run `npm run build:worker` when you need it.');
 }
-

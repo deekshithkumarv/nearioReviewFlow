@@ -13,18 +13,26 @@
     "start": "next start",
     "migrate": "node --env-file=.env scripts/migrate.js",
     "seed": "node --env-file=.env scripts/seed.js",
-    "test:integration": "node --env-file=.env scripts/verify-integration.mjs",
-    "test": "node --test --test-concurrency=1 test/*.test.js"
+    "test:integration": "node --env-file=.env.test scripts/verify-integration.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "lint": "eslint app lib scripts test",
+    "test:unit": "node --test test/qr.test.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
+    "framer-motion": "^12.43.0",
+    "lucide-react": "^1.72.0",
     "next": "^15.0.0",
     "pg": "^8.11.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@opennextjs/cloudflare": "^1.20.16",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.29",
+    "jsqr": "^1.4.0",
     "wrangler": "^4.159.0"
   }
 }

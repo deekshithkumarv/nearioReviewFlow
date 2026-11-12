@@ -19,6 +19,12 @@
       "service": "nearioreviewflow"
     }
   ],
+  // Per-IP limits used by lib/ratelimit.js. namespace_id must be unique within your Cloudflare account;
+  // period can only be 10 or 60 seconds.
+  "ratelimits": [
+    { "name": "AUTH_LIMITER", "namespace_id": "4101", "simple": { "limit": 10, "period": 60 } },
+    { "name": "PUBLIC_WRITE_LIMITER", "namespace_id": "4102", "simple": { "limit": 12, "period": 60 } }
+  ],
   "observability": {
     "enabled": true
   }

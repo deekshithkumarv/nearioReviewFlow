@@ -6,4 +6,4 @@ export const POST = handle(async ({ db, body, sessionSecret }) => {
   if (!actor) return json({ error: 'Wrong email or password.' }, 401);
   const token = signSession(actor.id, sessionSecret || process.env.SESSION_SECRET);
   return json({ user: actor }, 200, { 'Set-Cookie': sessionCookie(token, { secure: secureCookies() }) });
-}, { anonymous: true });
+}, { anonymous: true, rateLimit: ['AUTH_LIMITER', 'login'] });

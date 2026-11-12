@@ -36,8 +36,18 @@ async function runTests() {
   console.log('🚀 RUNNING NEARIO END-TO-END INTEGRATION TEST SUITE');
   console.log('======================================================\n');
 
+  // This script creates agencies, businesses, leads and feedback. Never point it at production.
+  if (process.env.ALLOW_INTEGRATION_WRITES !== '1') {
+    throw new Error('Refusing to run: this script writes test data. Point DATABASE_URL at a throwaway database and set ALLOW_INTEGRATION_WRITES=1.');
+  }
+  const superAdminEmail = process.env.VERIFY_ADMIN_EMAIL;
+  const superAdminPass = process.env.VERIFY_ADMIN_PASSWORD;
+  if (!superAdminEmail || !superAdminPass) {
+    throw new Error('Set VERIFY_ADMIN_EMAIL and VERIFY_ADMIN_PASSWORD for a super admin in the test database.');
+  }
+
   const db = await getDb();
-  console.log('✓ Successfully connected to Neon PostgreSQL database.');
+  console.log('✓ Connected to the database.');
 
   // Test 1: Verify tables exist
   const tables = await db.query(`
@@ -56,9 +66,6 @@ async function runTests() {
 
   // Test 2: Super Admin Login
   console.log('\n--- 1. Testing Super Admin Login ---');
-  const superAdminEmail = 'admin@nearioreviewflow.com';
-  const superAdminPass = 'NearioAdmin2026!';
-  
   const loginRes = await loginRoute(makeReq('/api/auth/login', {
     method: 'POST',
     body: { email: superAdminEmail, password: superAdminPass }
@@ -71,8 +78,6 @@ async function runTests() {
   const adminCookie = getCookie(loginRes);
   const loginData = await loginRes.json();
   console.log(`✓ Super Admin logged in successfully! Role: ${loginData.user.role}, Name: ${loginData.user.name}`);
-  console.log(`✓ Raw set-cookie: ${loginRes.headers.get('set-cookie')}`);
-  console.log(`✓ Extracted cookie: ${adminCookie}`);
 
   // Test 3: /api/me with Admin Cookie
   console.log('\n--- 2. Verifying /api/me Session ---');
@@ -103,7 +108,6 @@ async function runTests() {
   const agencyId = agencyData.agency.id;
   const agencyInviteToken = agencyData.inviteToken;
   console.log(`✓ Created agency "${agencyData.agency.name}" (ID: ${agencyId})`);
-  console.log(`✓ Generated Agency Invite Token: ${agencyInviteToken.substring(0, 10)}...`);
 
   // Test 5: Accept Agency Invite & Set Password
   console.log('\n--- 4. Accepting Agency Invite ---');
@@ -145,7 +149,6 @@ async function runTests() {
   const businessId = bizData.business.id;
   const clientInviteToken = bizData.inviteToken;
   console.log(`✓ Business "${bizData.business.name}" created under Agency (ID: ${businessId})`);
-  console.log(`✓ Generated Client Invite Token: ${clientInviteToken.substring(0, 10)}...`);
 
   // Test 7: Public Guest Submits Feedback
   console.log('\n--- 6. Public Guest Submits Feedback ---');
@@ -300,8 +303,7 @@ async function runTests() {
   }
   const convertData = await convertRes.json();
   const convertedBizId = convertData.id;
-  const convertedInviteToken = convertData.inviteToken;
-  console.log(`✓ Lead converted! Business ID: ${convertedBizId}, Token: ${convertedInviteToken?.substring(0, 8)}...`);
+  console.log(`✓ Lead converted! Business ID: ${convertedBizId}`);
 
   // Test 14: Client Onboarding and Feedback Enrichment
   console.log('\n--- 13. Client Onboarding & Dynamic Feedback Flow ---');
@@ -357,7 +359,7 @@ async function runTests() {
     throw new Error(`Customer feedback submission failed: ${customerFeedbackRes.status}`);
   }
   const customerFbData = await customerFeedbackRes.json();
-  console.log(`✓ Customer feedback submitted! Feedback ID: ${customerFbData.feedback?.id}`);
+  console.log(`✓ Customer feedback submitted! ok=${customerFbData.ok}`);
 
   console.log('\n======================================================');
   console.log('🎉 ALL INTEGRATION TESTS PASSED WITH 100% SUCCESS!');

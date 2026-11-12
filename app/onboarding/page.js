@@ -1,11 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { showToast } from '../components/Toast';
+import { m, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Copy, Download, ExternalLink, Plus, Printer, RotateCcw, ShieldCheck, Store, X } from 'lucide-react';
+import { showToast } from '../components/ui/Toast';
+import Logo from '../components/ui/Logo';
+import QrCode from '../components/QrCode';
+import s from './onboarding.module.css';
 
-const STEPS = ['Business', 'Services', 'Locations', 'Google', 'Plan', 'QR code'];
+const STEPS = ['Business', 'Services', 'Google link', 'QR code'];
 const SUGG = {
   'Salon or spa': ['Haircut', 'Facial', 'Hair Spa', 'Manicure', 'Waxing', 'Bridal'],
   'Restaurant or café': ['Dine-in', 'Takeaway', 'Delivery', 'Catering'],
@@ -13,536 +18,680 @@ const SUGG = {
   'Retail': ['In-store', 'Online order', 'Returns'],
   'Other': ['Service', 'Product', 'Support'],
 };
+const ALL_SUGGESTED = new Set(Object.values(SUGG).flat().map((x) => x.toLowerCase()));
+const MAX_SVC = 12;
+const MAX_SVC_LEN = 40;
+const EASE = [0.2, 0.8, 0.2, 1];
+
+const slugify = (v) =>
+  String(v || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'feedback';
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
+  const [dir, setDir] = useState(1);
   const [bizId, setBizId] = useState(null);
   const [d, setD] = useState({
     biz: '',
     cat: 'Salon or spa',
-    owner: '',
-    email: '',
-    city: '',
     svc: ['Haircut', 'Facial', 'Hair Spa'],
-    locs: [{ n: '', a: '' }],
-    g: false,
     gurl: '',
-    placeId: '',
-    size: 'A5',
-    plan: 'yearly',
   });
   const [newSvc, setNewSvc] = useState('');
   const [errs, setErrs] = useState({});
-  const qrCanvasRef = useRef(null);
+  const [initState, setInitState] = useState('loading'); // 'loading' | 'ready' | 'nobiz' | 'error'
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [fromParam, setFromParam] = useState(false); // opened as /onboarding?b=<id>
+
+  const nameRef = useRef(null);
+  const newSvcRef = useRef(null);
+  const gurlRef = useRef(null);
+  const qrRef = useRef(null);
+  const focusHeadingNext = useRef(false);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     async function loadBiz() {
       try {
         const meRes = await fetch('/api/me');
-        if (!meRes.ok) {
-          router.push('/login');
+        if (meRes.status === 401) {
+          router.replace('/login');
           return;
         }
+        if (!meRes.ok) throw new Error('me failed');
         const meData = await meRes.json();
         if (meData.user?.role === 'super_admin') {
-          router.push('/admin');
+          router.replace('/admin');
           return;
         }
         const bRes = await fetch('/api/businesses');
-        if (bRes.ok) {
-          const bData = await bRes.json();
-          const first = bData.businesses?.[0];
-          if (first) {
-            setBizId(first.id);
-            setD((prev) => ({
-              ...prev,
-              biz: first.name || '',
-              cat: first.type || 'Salon or spa',
-              owner: meData.user.name || '',
-              email: meData.user.email || '',
-              city: first.city || '',
-              gurl: first.google_review_url || '',
-              svc: Array.isArray(first.services) && first.services.length > 0
-                ? first.services
-                : prev.svc,
-            }));
-          }
+        if (!bRes.ok) throw new Error('businesses failed');
+        const list = (await bRes.json()).businesses || [];
+        // Agencies manage several businesses: the dashboard links here with ?b=<id> for the one being viewed.
+        const wanted = new URLSearchParams(window.location.search).get('b');
+        const first = wanted ? list.find((b) => Number(b.id) === Number(wanted)) : list[0];
+        if (!first) {
+          setInitState('nobiz');
+          return;
         }
-      } catch (err) {
-        console.error('Onboarding init error:', err);
+        const cat = SUGG[first.type] ? first.type : 'Other';
+        setBizId(first.id);
+        setFromParam(Boolean(wanted));
+        setD((prev) => ({
+          ...prev,
+          biz: first.name || '',
+          cat,
+          gurl: first.google_review_url || '',
+          svc: Array.isArray(first.services) && first.services.length > 0 ? first.services : SUGG[cat].slice(0, 3),
+        }));
+        setInitState('ready');
+      } catch {
+        setInitState('error');
       }
     }
     loadBiz();
   }, [router]);
 
-  function slug(s) {
-    return (s || 'your-business').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'your-business';
+  // The new step's heading takes focus once it mounts, so screen readers announce where they are.
+  const headingRef = useCallback((node) => {
+    if (node && focusHeadingNext.current) {
+      focusHeadingNext.current = false;
+      node.focus({ preventScroll: true });
+    }
+  }, []);
+
+  function goTo(next) {
+    setDir(next > step ? 1 : -1);
+    focusHeadingNext.current = true;
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
   }
 
   function validate() {
     const e = {};
-    if (step === 0) {
-      if (!d.biz.trim()) e.biz = 'Enter your business name.';
-      if (!d.owner.trim()) e.owner = 'Enter your name.';
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())) e.email = 'Enter a valid email, like name@business.com.';
-    }
+    if (step === 0 && !d.biz.trim()) e.biz = 'Enter your business name.';
     if (step === 1 && !d.svc.length) e.svc = 'Pick or add at least one service.';
-    if (step === 2) {
-      d.locs.forEach((l, i) => {
-        if (!l.n.trim()) e['ln' + i] = 'Give this location a name.';
-      });
+    if (step === 2 && d.gurl.trim()) {
+      let ok = false;
+      try {
+        ok = new URL(d.gurl.trim()).protocol === 'https:';
+      } catch {
+        ok = false;
+      }
+      if (!ok) e.gurl = 'Paste the full link, starting with https://';
     }
     setErrs(e);
+    if (e.biz) nameRef.current?.focus();
+    if (e.gurl) gurlRef.current?.focus();
     return Object.keys(e).length === 0;
   }
 
-  async function handleNext() {
-    if (!validate()) return;
-    if (bizId) {
-      if (step === 0) {
-        fetch(`/api/businesses/${bizId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: d.biz.trim(), type: d.cat, city: d.city?.trim() || null }),
-        }).catch(console.error);
-      } else if (step === 1) {
-        fetch(`/api/businesses/${bizId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ services: d.svc }),
-        }).catch(console.error);
-      } else if (step === 3 && d.gurl) {
-        fetch(`/api/businesses/${bizId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ googleReviewUrl: d.gurl.trim() }),
-        }).catch(console.error);
-      }
-    }
-    setStep((s) => s + 1);
-    window.scrollTo(0, 0);
-  }
-
-  async function handleFinish() {
-    if (bizId) {
-      await fetch(`/api/businesses/${bizId}`, {
+  // Saves one change and waits for the answer. Returns true only when the server accepted it,
+  // so the wizard never moves on (or says "done") after a failed save.
+  async function save(body) {
+    if (!bizId) return true;
+    setSaving(true);
+    setSaveErr('');
+    try {
+      const res = await fetch(`/api/businesses/${bizId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          onboarded: true,
-          name: d.biz.trim(),
-          type: d.cat,
-          services: d.svc,
-          googleReviewUrl: d.gurl?.trim() || null,
-        }),
-      }).catch(console.error);
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return true;
+      const data = await res.json().catch(() => ({}));
+      setSaveErr(data.error || 'We could not save this step. Please try again.');
+      return false;
+    } catch {
+      setSaveErr('Network error. Nothing was saved, please try again.');
+      return false;
+    } finally {
+      setSaving(false);
     }
-    showToast('Setup complete! Welcome to your dashboard.');
-    router.push('/dashboard');
+  }
+
+  async function handleNext() {
+    if (saving || !validate()) return;
+    let ok = true;
+    if (step === 0) ok = await save({ name: d.biz.trim(), type: d.cat });
+    else if (step === 1) ok = await save({ services: d.svc });
+    else if (step === 2) ok = await save({ googleReviewUrl: d.gurl.trim() });
+    if (!ok) return;
+    goTo(step + 1);
+  }
+
+  const dashboardHref = fromParam && bizId ? `/dashboard?b=${bizId}` : '/dashboard';
+
+  async function handleFinish() {
+    if (saving) return;
+    if (!(await save({ onboarded: true }))) return;
+    showToast('Setup complete. Welcome to your dashboard.', { tone: 'success' });
+    router.push(dashboardHref);
   }
 
   async function handleSkipLater() {
-    if (bizId) {
-      await fetch(`/api/businesses/${bizId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ onboarded: true }),
-      }).catch(console.error);
-    }
-    router.push('/dashboard');
+    if (saving) return;
+    if (!(await save({ onboarded: true }))) return;
+    router.push(dashboardHref);
   }
 
-  function handleBack() {
-    setStep((s) => s - 1);
+  function handleBack(to = step - 1) {
+    if (saving) return;
     setErrs({});
-    window.scrollTo(0, 0);
+    setSaveErr('');
+    goTo(to);
   }
 
-  function toggleService(s) {
+  function changeType(cat) {
     setD((prev) => {
-      const idx = prev.svc.indexOf(s);
-      const updated = idx > -1 ? prev.svc.filter((x) => x !== s) : [...prev.svc, s];
-      return { ...prev, svc: updated };
+      // Keep anything the owner typed themselves; swap the suggestions for the new type's.
+      const custom = prev.svc.filter((x) => !ALL_SUGGESTED.has(x.toLowerCase()));
+      return { ...prev, cat, svc: [...(SUGG[cat] || []).slice(0, 3), ...custom].slice(0, MAX_SVC) };
     });
   }
 
-  function addService() {
-    const trimmed = newSvc.trim();
-    if (!trimmed) return;
-    if (!d.svc.includes(trimmed)) {
-      setD((prev) => ({ ...prev, svc: [...prev.svc, trimmed] }));
+  function toggleService(sv) {
+    if (d.svc.includes(sv)) {
+      setD((prev) => ({ ...prev, svc: prev.svc.filter((x) => x !== sv) }));
+      return;
     }
+    if (d.svc.length >= MAX_SVC) {
+      setErrs((e) => ({ ...e, svc: `You can list up to ${MAX_SVC} services. Remove one to add another.` }));
+      return;
+    }
+    setErrs((e) => ({ ...e, svc: undefined }));
+    setD((prev) => ({ ...prev, svc: [...prev.svc, sv] }));
+  }
+
+  function removeService(sv) {
+    setErrs((e) => ({ ...e, svc: undefined }));
+    setD((prev) => ({ ...prev, svc: prev.svc.filter((x) => x !== sv) }));
+  }
+
+  function addService() {
+    const v = newSvc.trim().replace(/\s+/g, ' ');
+    if (!v) return;
+    let err = '';
+    if (v.length > MAX_SVC_LEN) err = `Keep each service under ${MAX_SVC_LEN} characters.`;
+    else if (d.svc.some((x) => x.toLowerCase() === v.toLowerCase())) err = `“${v}” is already in your list.`;
+    else if (d.svc.length >= MAX_SVC) err = `You can list up to ${MAX_SVC} services. Remove one to add another.`;
+    if (err) {
+      setErrs((e) => ({ ...e, newSvc: err }));
+      newSvcRef.current?.focus();
+      return;
+    }
+    setD((prev) => ({ ...prev, svc: [...prev.svc, v] }));
+    setErrs((e) => ({ ...e, newSvc: undefined, svc: undefined }));
     setNewSvc('');
   }
 
-  const feedbackUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/feedback/${bizId || 1}`
-    : `https://feedback.example.com/${slug(d.biz)}/${slug(d.locs[0]?.n)}`;
+  const feedbackUrl = origin && bizId ? `${origin}/feedback/${bizId}` : '';
 
-  useEffect(() => {
-    if (step === 5 && qrCanvasRef.current) {
-      const canvas = qrCanvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 200, 200);
-      ctx.fillStyle = '#17261d';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Scan to Rate', 100, 90);
-      ctx.font = '11px monospace';
-      ctx.fillStyle = '#65726a';
-      ctx.fillText(d.biz || 'Neario Demo', 100, 115);
-      // Outer border
-      ctx.strokeStyle = '#e6dfcf';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(10, 10, 180, 180);
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(feedbackUrl);
+      showToast('Feedback link copied.', { tone: 'success' });
+    } catch {
+      showToast('Could not copy. Select the link and copy it yourself.', { tone: 'error' });
     }
-  }, [step, d.biz]);
+  }
+
+  function downloadQr() {
+    const svg = qrRef.current?.querySelector('svg');
+    if (!svg) {
+      showToast('The QR code is not ready yet. Please try again.', { tone: 'error' });
+      return;
+    }
+    const NS = 'http://www.w3.org/2000/svg';
+    const clone = svg.cloneNode(true);
+    clone.setAttribute('width', '1024');
+    clone.setAttribute('height', '1024');
+    clone.removeAttribute('style');
+    const bg = document.createElementNS(NS, 'rect');
+    bg.setAttribute('width', '100%');
+    bg.setAttribute('height', '100%');
+    bg.setAttribute('fill', '#ffffff');
+    clone.insertBefore(bg, clone.firstChild);
+    let markup = new XMLSerializer().serializeToString(clone);
+    if (!/\sxmlns=/.test(markup.slice(0, markup.indexOf('>')))) markup = markup.replace('<svg', `<svg xmlns="${NS}"`);
+    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n${markup}`], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `neario-qr-${slugify(d.biz)}.svg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('QR code downloaded.', { tone: 'success' });
+  }
+
+  const stepVariants = {
+    enter: (v) => ({ opacity: 0, x: reduce ? 0 : 24 * v }),
+    center: { opacity: 1, x: 0 },
+    exit: (v) => ({ opacity: 0, x: reduce ? 0 : -24 * v }),
+  };
+  const stepTransition = { duration: reduce ? 0 : 0.26, ease: EASE };
+
+  if (initState !== 'ready') {
+    return (
+      <div className={s.page}>
+        <header className={s.header}>
+          <div className={s.headerInner}>
+            <Logo size={30} />
+          </div>
+        </header>
+        <main id="main" className={s.shell}>
+          {initState === 'loading' ? (
+            <div aria-busy="true" aria-label="Loading setup" className={s.skel}>
+              <span className="skeleton" style={{ height: 44 }} />
+              <span className="skeleton" style={{ height: 4 }} />
+              <div className={`card ${s.card}`}>
+                <div className={s.body}>
+                  <span className="skeleton" style={{ height: 14, width: 90 }} />
+                  <span className="skeleton" style={{ height: 36, width: '60%' }} />
+                  <span className="skeleton" style={{ height: 18, width: '85%' }} />
+                  <span className="skeleton" style={{ height: 46, marginTop: 12 }} />
+                  <span className="skeleton" style={{ height: 46 }} />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className={`card ${s.problem}`} role="alert">
+              <span className={s.problemIcon} aria-hidden="true">
+                {initState === 'nobiz' ? <Store /> : <CircleAlert />}
+              </span>
+              <h1>{initState === 'nobiz' ? 'No business is linked to your account yet' : 'We couldn’t load your setup'}</h1>
+              <p>
+                {initState === 'nobiz'
+                  ? 'Ask your Neario contact or agency to link your business, then sign in again.'
+                  : 'Check your connection and try again.'}
+              </p>
+              {initState === 'error' ? (
+                <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+                  <RotateCcw aria-hidden="true" />
+                  Try again
+                </button>
+              ) : (
+                <Link href="/dashboard" className="btn">Go to dashboard</Link>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  const suggestions = SUGG[d.cat] || [];
+  const isLast = step === STEPS.length - 1;
+  const gurlInvalid = Boolean(errs.gurl) || (step === 2 && Boolean(saveErr));
 
   return (
-    <div className="onboarding-page" style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div className="wrap" style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <Link href="/" className="brand" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="mark" style={{ width: 36, height: 36, borderRadius: 11, background: 'var(--primary)', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 18 }}>N</span>
-            <span className="wm">
-              <b style={{ display: 'block', fontSize: 23, letterSpacing: '-.06em', lineHeight: 1, color: 'var(--accent-text)' }}>neario</b>
-              <small style={{ fontSize: 9, letterSpacing: '.32em', fontWeight: 700, color: 'var(--muted)' }}>REVIEWFLOW</small>
-            </span>
-          </Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 600, flexWrap: 'wrap' }}>
-            <Link href="/" className="btn s" style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px' }}>🏠 Home</Link>
-            <Link href="/dashboard" className="btn s" style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px' }}>📊 Dashboard</Link>
-            <Link href="/login" className="btn s" style={{ textDecoration: 'none', fontSize: 12, padding: '6px 12px' }}>🔐 Login</Link>
-          </div>
-        </div>
-
-        <div className="demo" role="note" style={{ fontSize: 12, color: 'var(--muted)', background: 'var(--surface-2)', border: '1px dashed var(--line)', borderRadius: 12, padding: '8px 12px' }}>
-          Interactive Setup Wizard. Set up your business profile, customize feedback categories, and preview your QR card.
-        </div>
-
-        <div className="rail" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
-          {STEPS.map((s, i) => (
-            <div key={s} className={i <= step ? 'on' : ''} style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11.5, fontWeight: 600, color: i <= step ? 'var(--fg)' : 'var(--muted)' }}>
-              <i style={{ height: 5, borderRadius: 9, background: i <= step ? 'var(--primary)' : 'var(--line)' }}></i>
-              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}. {s}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '-6px 0 0' }}>
-          <button type="button" className="btn s" onClick={handleSkipLater} style={{ fontSize: 13, padding: '6px 14px' }}>
+    <div className={s.page}>
+      <header className={s.header}>
+        <div className={s.headerInner}>
+          <Logo size={30} />
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleSkipLater} disabled={saving}>
             Set up later
           </button>
         </div>
+      </header>
 
-        <section className="card" style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 24, boxShadow: 'var(--shadow)', padding: 'clamp(20px, 4vw, 32px)', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {step === 0 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>Tell us about your business</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>This sets up your workspace and your customer feedback page.</p>
-
-              <label className="f">
-                Business name
-                <input
-                  type="text"
-                  placeholder="e.g. Copper Chimney"
-                  value={d.biz}
-                  onChange={(e) => setD({ ...d, biz: e.target.value })}
-                  style={{ borderColor: errs.biz ? 'var(--red)' : undefined }}
-                />
-                {errs.biz && <span className="err" style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600 }}>{errs.biz}</span>}
-              </label>
-
-              <label className="f">
-                Type of business
-                <select value={d.cat} onChange={(e) => setD({ ...d, cat: e.target.value, svc: SUGG[e.target.value]?.slice(0, 3) || [] })}>
-                  {Object.keys(SUGG).map((k) => (
-                    <option key={k} value={k}>{k}</option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <label className="f" style={{ flex: 1, minWidth: 140 }}>
-                  Your name
-                  <input
-                    type="text"
-                    placeholder="Priya Sharma"
-                    value={d.owner}
-                    onChange={(e) => setD({ ...d, owner: e.target.value })}
-                  />
-                  {errs.owner && <span className="err" style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600 }}>{errs.owner}</span>}
-                </label>
-                <label className="f" style={{ flex: 1, minWidth: 140 }}>
-                  Email
-                  <input
-                    type="email"
-                    placeholder="priya@example.com"
-                    value={d.email}
-                    onChange={(e) => setD({ ...d, email: e.target.value })}
-                  />
-                  {errs.email && <span className="err" style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600 }}>{errs.email}</span>}
-                </label>
-              </div>
-
-              <div className="nav" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
-                <button type="button" className="btn p" onClick={handleNext}>Continue</button>
-              </div>
-            </>
-          )}
-
-          {step === 1 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>What do you offer?</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>Customers pick one of these when they leave feedback. You can change them later.</p>
-
-              <div className="chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {SUGG[d.cat]?.map((s) => {
-                  const selected = d.svc.includes(s);
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      className="chip"
-                      onClick={() => toggleService(s)}
-                      aria-pressed={selected}
-                      style={{
-                        borderRadius: 999,
-                        padding: '9px 14px',
-                        fontWeight: 600,
-                        border: '1.5px solid var(--line)',
-                        background: selected ? 'var(--primary)' : 'var(--surface)',
-                        color: selected ? '#fff' : 'inherit',
-                      }}
-                    >
-                      {s}
+      <main id="main" className={s.shell}>
+        <nav aria-label="Setup steps">
+          <ol className={s.rail}>
+            {STEPS.map((label, i) => {
+              const state = i < step ? 'done' : i === step ? 'current' : 'todo';
+              const inner = (
+                <>
+                  <span className={s.railNum} aria-hidden="true">
+                    {i < step ? <Check strokeWidth={3} /> : i + 1}
+                  </span>
+                  <span className={s.railLabel}>{label}</span>
+                  {i < step && <span className="visually-hidden"> (done)</span>}
+                </>
+              );
+              return (
+                <li key={label} className={s.railItem} data-state={state} aria-current={i === step ? 'step' : undefined}>
+                  {i < step ? (
+                    <button type="button" className={s.railStep} onClick={() => handleBack(i)} disabled={saving}>
+                      {inner}
                     </button>
-                  );
-                })}
+                  ) : (
+                    <span className={s.railStep}>{inner}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+
+        <div className={s.bar} aria-hidden="true">
+          <m.span
+            className={s.barFill}
+            initial={false}
+            animate={{ scaleX: (step + 1) / STEPS.length }}
+            transition={{ duration: reduce ? 0 : 0.4, ease: EASE }}
+          />
+        </div>
+
+        <div className={`card ${s.card}`}>
+          <AnimatePresence mode="wait" initial={false} custom={dir}>
+            <m.section
+              key={step}
+              className={s.body}
+              custom={dir}
+              variants={stepVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={stepTransition}
+              aria-labelledby="ob-heading"
+            >
+              <div className={s.intro}>
+                <p className="eyebrow">Step {step + 1} of {STEPS.length}</p>
+                <h1 id="ob-heading" ref={headingRef} tabIndex={-1}>
+                  {step === 0 && 'Tell us about your business'}
+                  {step === 1 && 'What do customers come in for?'}
+                  {step === 2 && 'Add your Google review link'}
+                  {step === 3 && 'Your QR code is ready'}
+                </h1>
+                <p className={s.lead}>
+                  {step === 0 && 'Customers see this name at the top of your feedback page.'}
+                  {step === 1 && 'Customers can pick one of these when they leave feedback. You can change them later.'}
+                  {step === 2 && 'After sending feedback, customers can choose to post a public review on Google with this link.'}
+                  {step === 3 && 'Print it for your counter or tap stand. Customers scan it to open your feedback page.'}
+                </p>
               </div>
 
-              <div className="li" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <input
-                  type="text"
-                  placeholder="Add another custom service"
-                  value={newSvc}
-                  onChange={(e) => setNewSvc(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addService())}
-                />
-                <button type="button" className="btn s" onClick={addService}>Add</button>
-              </div>
-
-              {errs.svc && <span className="err" style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600 }}>{errs.svc}</span>}
-
-              <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <button type="button" className="btn p" onClick={handleNext}>Continue</button>
-              </div>
-            </>
-          )}
-
-          {step === 2 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>Where do customers visit you?</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>Each location gets its own feedback link and QR code.</p>
-
-              <div className="list" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {d.locs.map((l, i) => (
-                  <div key={i} className="row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <label className="f" style={{ flex: 1, minWidth: 140 }}>
-                      Location name
-                      <input
-                        type="text"
-                        placeholder="e.g. Indiranagar"
-                        value={l.n}
-                        onChange={(e) => {
-                          const updated = [...d.locs];
-                          updated[i].n = e.target.value;
-                          setD({ ...d, locs: updated });
-                        }}
-                      />
-                    </label>
-                    <label className="f" style={{ flex: 1, minWidth: 140 }}>
-                      City / Area
-                      <input
-                        type="text"
-                        placeholder="e.g. Bengaluru"
-                        value={l.a}
-                        onChange={(e) => {
-                          const updated = [...d.locs];
-                          updated[i].a = e.target.value;
-                          setD({ ...d, locs: updated });
-                        }}
-                      />
-                    </label>
-                    {d.locs.length > 1 && (
-                      <button
-                        type="button"
-                        className="x"
-                        style={{ border: '1.5px solid var(--line)', background: 'var(--surface)', borderRadius: 12, width: 44, height: 44, cursor: 'pointer' }}
-                        onClick={() => setD({ ...d, locs: d.locs.filter((_, idx) => idx !== i) })}
-                      >
-                        ×
-                      </button>
+              {step === 0 && (
+                <div className={s.fields}>
+                  <div className="field">
+                    <label className="label" htmlFor="ob-name">Business name</label>
+                    <input
+                      ref={nameRef}
+                      id="ob-name"
+                      className="input"
+                      type="text"
+                      autoComplete="organization"
+                      maxLength={120}
+                      placeholder="e.g. Copper Chimney"
+                      value={d.biz}
+                      onChange={(e) => setD({ ...d, biz: e.target.value })}
+                      aria-invalid={errs.biz ? true : undefined}
+                      aria-describedby={errs.biz ? 'ob-name-err' : undefined}
+                      required
+                    />
+                    {errs.biz && (
+                      <p id="ob-name-err" className="field-error" role="alert">
+                        <CircleAlert aria-hidden="true" />
+                        {errs.biz}
+                      </p>
                     )}
                   </div>
-                ))}
-              </div>
 
+                  <div className="field">
+                    <label className="label" htmlFor="ob-type">Type of business</label>
+                    <select
+                      id="ob-type"
+                      className="select"
+                      value={d.cat}
+                      onChange={(e) => changeType(e.target.value)}
+                      aria-describedby="ob-type-hint"
+                    >
+                      {Object.keys(SUGG).map((k) => (
+                        <option key={k} value={k}>{k}</option>
+                      ))}
+                    </select>
+                    <p id="ob-type-hint" className="hint">We use this to suggest services in the next step.</p>
+                  </div>
+                </div>
+              )}
+
+              {step === 1 && (
+                <div className={s.fields}>
+                  <fieldset className={s.fieldset}>
+                    <legend className="label">Suggested for {d.cat.toLowerCase()}</legend>
+                    <div className={s.chips}>
+                      {suggestions.map((sv) => {
+                        const on = d.svc.includes(sv);
+                        return (
+                          <button key={sv} type="button" className={s.chip} aria-pressed={on} onClick={() => toggleService(sv)}>
+                            {on ? <Check aria-hidden="true" strokeWidth={2.5} /> : <Plus aria-hidden="true" />}
+                            {sv}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+
+                  <div className="field">
+                    <label className="label" htmlFor="ob-new-svc">Add your own</label>
+                    <div className={s.addRow}>
+                      <input
+                        ref={newSvcRef}
+                        id="ob-new-svc"
+                        className="input"
+                        type="text"
+                        maxLength={MAX_SVC_LEN}
+                        placeholder="e.g. Keratin treatment"
+                        value={newSvc}
+                        onChange={(e) => {
+                          setNewSvc(e.target.value);
+                          if (errs.newSvc) setErrs((x) => ({ ...x, newSvc: undefined }));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addService();
+                          }
+                        }}
+                        aria-invalid={errs.newSvc ? true : undefined}
+                        aria-describedby={`ob-new-svc-hint${errs.newSvc ? ' ob-new-svc-err' : ''}`}
+                      />
+                      <button type="button" className="btn" onClick={addService}>
+                        <Plus aria-hidden="true" />
+                        Add
+                      </button>
+                    </div>
+                    <p id="ob-new-svc-hint" className="hint">
+                      Press Enter to add. Up to {MAX_SVC} services, {MAX_SVC_LEN} characters each.
+                    </p>
+                    {errs.newSvc && (
+                      <p id="ob-new-svc-err" className="field-error" role="alert">
+                        <CircleAlert aria-hidden="true" />
+                        {errs.newSvc}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className={s.listBox}>
+                    <div className={s.listHead}>
+                      <h2 id="ob-list-title">Your list</h2>
+                      <span className={s.count}>{d.svc.length} of {MAX_SVC}</span>
+                    </div>
+                    {d.svc.length ? (
+                      <ul className={s.chips} aria-labelledby="ob-list-title">
+                        <AnimatePresence initial={false}>
+                          {d.svc.map((sv) => (
+                            <m.li
+                              key={sv}
+                              className={s.tag}
+                              initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={reduce ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.18, ease: EASE }}
+                            >
+                              <span>{sv}</span>
+                              <button type="button" className={s.tagX} onClick={() => removeService(sv)} aria-label={`Remove ${sv}`}>
+                                <X aria-hidden="true" />
+                              </button>
+                            </m.li>
+                          ))}
+                        </AnimatePresence>
+                      </ul>
+                    ) : (
+                      <p className="hint">Nothing here yet. Pick a suggestion or add your own.</p>
+                    )}
+                    {errs.svc && (
+                      <p className="field-error" role="alert">
+                        <CircleAlert aria-hidden="true" />
+                        {errs.svc}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className={s.fields}>
+                  <div className="field">
+                    <label className="label" htmlFor="ob-gurl">
+                      Google review link <span className="optional">(optional)</span>
+                    </label>
+                    <input
+                      ref={gurlRef}
+                      id="ob-gurl"
+                      className="input"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      placeholder="https://g.page/r/…/review"
+                      value={d.gurl}
+                      onChange={(e) => {
+                        setD({ ...d, gurl: e.target.value });
+                        if (errs.gurl) setErrs((x) => ({ ...x, gurl: undefined }));
+                      }}
+                      aria-invalid={gurlInvalid || undefined}
+                      aria-describedby={`ob-gurl-help${errs.gurl ? ' ob-gurl-err' : ''}${step === 2 && saveErr ? ' ob-save-err' : ''}`}
+                    />
+                    <p id="ob-gurl-help" className="hint">
+                      It starts with https://g.page, https://maps.app.goo.gl or https://www.google.com. You can leave this empty and add it later.
+                    </p>
+                    {errs.gurl && (
+                      <p id="ob-gurl-err" className="field-error" role="alert">
+                        <CircleAlert aria-hidden="true" />
+                        {errs.gurl}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className={s.howto}>
+                    <h2>Where to find it</h2>
+                    <ol>
+                      <li>Open your Google Business Profile. Search for your business name on Google while signed in, or open the Google Maps app.</li>
+                      <li>Choose <b>Ask for reviews</b> (it may say <b>Get more reviews</b>).</li>
+                      <li>Copy the link and paste it above.</li>
+                    </ol>
+                  </div>
+
+                  <p className={s.note}>
+                    <ShieldCheck aria-hidden="true" />
+                    <span>
+                      Every customer sees the same Google review link after sending feedback, whatever their rating. Neario does not filter who gets it.
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className={s.qrLayout}>
+                  <div className={s.qrFrame} ref={qrRef}>
+                    <QrCode value={feedbackUrl} size={184} label={`QR code for the ${d.biz} feedback page`} />
+                  </div>
+                  <div className={s.qrSide}>
+                    <div className="field">
+                      <span className="label" id="ob-url-label">Your feedback page</span>
+                      <p className={s.url} aria-labelledby="ob-url-label">{feedbackUrl}</p>
+                    </div>
+                    <div className={s.qrActions}>
+                      <button type="button" className="btn" onClick={copyLink} disabled={!feedbackUrl}>
+                        <Copy aria-hidden="true" />
+                        Copy link
+                      </button>
+                      <Link href={`/feedback/${bizId}`} target="_blank" rel="noopener noreferrer" className="btn">
+                        <ExternalLink aria-hidden="true" />
+                        Open the page
+                        <span className="visually-hidden"> (opens in a new tab)</span>
+                      </Link>
+                      <button type="button" className="btn" onClick={() => window.print()}>
+                        <Printer aria-hidden="true" />
+                        Print card
+                      </button>
+                      <button type="button" className="btn" onClick={downloadQr} disabled={!feedbackUrl}>
+                        <Download aria-hidden="true" />
+                        Download QR (SVG)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </m.section>
+          </AnimatePresence>
+
+          <div className={s.nav}>
+            {saveErr && (
+              <div id="ob-save-err" className={`alert alert-danger ${s.navAlert}`} role="alert">
+                <CircleAlert aria-hidden="true" />
+                <span>{saveErr}</span>
+              </div>
+            )}
+            <div className={s.navBtns}>
+              {step > 0 ? (
+                <button type="button" className="btn btn-lg" onClick={() => handleBack()} disabled={saving}>
+                  <ArrowLeft aria-hidden="true" />
+                  Back
+                </button>
+              ) : (
+                <span />
+              )}
               <button
                 type="button"
-                className="add"
-                style={{ alignSelf: 'flex-start', background: 'none', border: 0, color: 'var(--accent-text)', fontWeight: 700, padding: '6px 0', cursor: 'pointer' }}
-                onClick={() => setD({ ...d, locs: [...d.locs, { n: '', a: '' }] })}
+                className="btn btn-primary btn-lg"
+                onClick={isLast ? handleFinish : handleNext}
+                disabled={saving}
+                aria-busy={saving}
               >
-                + Add another location
+                {saving ? (
+                  <>
+                    <span className="spinner" aria-hidden="true" />
+                    Saving…
+                  </>
+                ) : isLast ? (
+                  <>
+                    Finish setup
+                    <Check aria-hidden="true" />
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight aria-hidden="true" />
+                  </>
+                )}
               </button>
+            </div>
+          </div>
+        </div>
+      </main>
 
-              <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <button type="button" className="btn p" onClick={handleNext}>Continue</button>
-              </div>
-            </>
-          )}
-
-          {step === 3 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>Connect your Google Business Profile</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>This lets Neario show your Google reviews and help you reply. It also gives customers your correct review link.</p>
-
-              <div className="gcard" style={{ border: '1.5px solid var(--line)', borderRadius: 16, padding: 16, display: 'flex', gap: 14, alignItems: 'center' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fff', color: 'var(--blue)', display: 'grid', placeItems: 'center', fontWeight: 800, border: '1px solid var(--line)' }}>G</div>
-                <div style={{ flex: 1 }}>
-                  <b>Google Business Profile</b><br />
-                  <span className={`pill ${d.g ? 'ok' : ''}`} style={{ fontSize: 12, fontWeight: 700, borderRadius: 99, padding: '3px 10px', background: d.g ? 'var(--green-soft)' : 'var(--surface-2)', color: d.g ? 'var(--green)' : 'var(--muted)' }}>
-                    {d.g ? 'Connected' : 'Not connected'}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className={`btn ${d.g ? 's' : 'p'}`}
-                  onClick={() => {
-                    setD({ ...d, g: !d.g });
-                    showToast(d.g ? 'Disconnected Google Profile' : 'Google Profile connected!');
-                  }}
-                >
-                  {d.g ? 'Disconnect' : 'Connect'}
-                </button>
-              </div>
-
-              <div className="note" style={{ background: 'var(--sage)', color: 'var(--sage-ink)', borderRadius: 14, padding: '12px 14px', fontSize: 14 }}>
-                Every customer will see the same Google review link after sending feedback, whatever their rating. Neario does not filter who gets it.
-              </div>
-
-              <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <button type="button" className="btn p" onClick={handleNext}>Continue</button>
-              </div>
-            </>
-          )}
-
-          {step === 4 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>Choose your plan</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>Transparent billing with no hidden fees. Everything is included either way.</p>
-
-              <div className="plans" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                <button
-                  type="button"
-                  className={`pc ${d.plan === 'yearly' ? 'on' : ''}`}
-                  onClick={() => setD({ ...d, plan: 'yearly' })}
-                  style={{
-                    position: 'relative',
-                    textAlign: 'left',
-                    background: 'var(--surface)',
-                    border: d.plan === 'yearly' ? '2px solid var(--primary)' : '2px solid var(--line)',
-                    borderRadius: 18,
-                    padding: '24px 16px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <span style={{ position: 'absolute', top: -12, left: 14, background: '#f6c344', color: '#2a1d00', fontWeight: 800, fontSize: 11, textTransform: 'uppercase', borderRadius: 99, padding: '4px 10px' }}>
-                    First 3 months free
-                  </span>
-                  <b>Yearly</b>
-                  <span style={{ fontSize: 30, fontWeight: 800 }}>₹5,391</span>
-                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>One bill for 12 months. Pay for 9, get 12 (about ₹449/mo).</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`pc ${d.plan === 'monthly' ? 'on' : ''}`}
-                  onClick={() => setD({ ...d, plan: 'monthly' })}
-                  style={{
-                    textAlign: 'left',
-                    background: 'var(--surface)',
-                    border: d.plan === 'monthly' ? '2px solid var(--primary)' : '2px solid var(--line)',
-                    borderRadius: 18,
-                    padding: '24px 16px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    cursor: 'pointer',
-                  }}
-                >
-                  <b>Monthly</b>
-                  <span style={{ fontSize: 30, fontWeight: 800 }}>₹599</span>
-                  <span style={{ color: 'var(--muted)', fontSize: 13 }}>Billed monthly. Cancel anytime.</span>
-                </button>
-              </div>
-
-              <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <button type="button" className="btn p" onClick={handleNext}>Generate QR kit</button>
-              </div>
-            </>
-          )}
-
-          {step === 5 && (
-            <>
-              <h1 style={{ margin: 0, fontSize: 'clamp(24px, 4vw, 30px)', letterSpacing: '-.04em' }}>Your feedback page is ready!</h1>
-              <p className="mut" style={{ color: 'var(--muted)', margin: 0 }}>Print the QR code or program it onto a TapReview counter stand.</p>
-
-              <div className="qrbox" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
-                <canvas ref={qrCanvasRef} width={200} height={200} style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--line)' }}></canvas>
-                <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--surface-2)', borderRadius: 10, padding: '10px 12px', wordBreak: 'break-all' }}>
-                    {feedbackUrl}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      className="btn s"
-                      onClick={() => {
-                        navigator.clipboard.writeText(feedbackUrl);
-                        showToast('Feedback link copied to clipboard!');
-                      }}
-                    >
-                      Copy link
-                    </button>
-                    <Link href={`/feedback/${bizId || 1}`} target="_blank" className="btn s" style={{ textDecoration: 'none' }}>
-                      Test page ↗
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              <div className="nav" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                <button type="button" className="btn s" onClick={handleBack}>Back</button>
-                <button type="button" className="btn p" onClick={handleFinish}>
-                  Open Dashboard →
-                </button>
-              </div>
-            </>
-          )}
-        </section>
-      </div>
+      {/* Only this card prints (see @media print in the module). Always black on white. */}
+      {step === 3 && feedbackUrl && (
+        <div className={`${s.printCard} print-card`} aria-hidden="true">
+          <p className={s.printName}>{d.biz}</p>
+          <p className={s.printAsk}>How was your visit? Scan to tell us</p>
+          <QrCode value={feedbackUrl} size={260} label="" />
+          <p className={s.printFoot}>Powered by Neario ReviewFlow</p>
+        </div>
+      )}
     </div>
   );
 }
-

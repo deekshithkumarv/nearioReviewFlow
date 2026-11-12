@@ -1,257 +1,201 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, Check, Pause, Play, Star } from 'lucide-react';
+import p from './landing/phone.module.css';
+
+// Decorative, looping illustration of the customer flow:
+// stars -> tags -> note -> sending -> sent + "Share on Google too?".
+// It is one role="img" with a text description, so nothing inside is focusable.
+// Pauses on hover, while the pause button has focus, when the tab is hidden, or when the visitor presses Pause.
+// With reduced motion it shows one still frame.
+
+const STAGE_MS = [1100, 1500, 1500, 1900, 1100, 3600]; // 0 empty, 1 stars, 2 tags, 3 note, 4 sending, 5 sent
+const STILL_STAGE = 3;
+const TAGS = [
+  { label: 'Friendly staff', on: true },
+  { label: 'Clean space', on: true },
+  { label: 'Short wait', on: false },
+  { label: 'Good value', on: false },
+];
+const DESCRIPTION =
+  'Illustration of the customer feedback page on a phone. A customer of The Green House salon gives five stars, picks “Friendly staff” and “Clean space”, adds a short note and sends it. They then see the same option every customer sees: share a Google review too. Beside the phone, an example Growth Radar card lists themes from feedback.';
 
 export default function HeroPhoneMockup() {
-  const [rating, setRating] = useState(4);
-  const [activeTags, setActiveTags] = useState(['Friendly staff', 'Clean space']);
-  const [commentText, setCommentText] = useState('Loved the atmosphere & warm staff!');
-  const [stage, setStage] = useState(0); // 0: rating & tags, 1: typing comment, 2: sending, 3: google review prompt
-  const [radarPing, setRadarPing] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [reduce, setReduce] = useState(false);
+  const [stage, setStage] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [tabHidden, setTabHidden] = useState(false);
 
-  // Auto-play timeline simulation
+  const paused = hovered || focused || userPaused || tabHidden;
+  const shown = reduce ? STILL_STAGE : stage;
+
+  // Read the motion preference after mount so server and client render the same first frame.
   useEffect(() => {
-    if (isHovered) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduce(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
-    const timer = setInterval(() => {
-      setStage((prev) => {
-        if (prev === 0) {
-          // Animate stars to 5 and add tag
-          setRating(5);
-          setActiveTags(['Friendly staff', 'Clean space', 'Waiting time']);
-          return 1;
-        } else if (prev === 1) {
-          // Show typing / comment
-          setCommentText('Loved the atmosphere & warm staff!');
-          return 2; // trigger send button
-        } else if (prev === 2) {
-          // Sent! Trigger radar sync
-          setRadarPing(true);
-          setTimeout(() => setRadarPing(false), 2800);
-          return 3; // show Google Review prompt
-        } else {
-          // Reset to initial loop state
-          setRating(4);
-          setActiveTags(['Friendly staff', 'Clean space']);
-          setCommentText('');
-          return 0;
-        }
-      });
-    }, 2800);
+  useEffect(() => {
+    const onVis = () => setTabHidden(document.visibilityState === 'hidden');
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
-    return () => clearInterval(timer);
-  }, [isHovered]);
+  useEffect(() => {
+    if (reduce || paused) return undefined;
+    const t = setTimeout(() => setStage((prev) => (prev + 1) % STAGE_MS.length), STAGE_MS[stage]);
+    return () => clearTimeout(t);
+  }, [stage, paused, reduce]);
 
-  function handleStarClick(num) {
-    setRating(num);
-  }
-
-  function handleTagClick(tag) {
-    setActiveTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
-  }
+  const sent = shown >= 5;
 
   return (
-    <div
-      className="vis hero-mockup-wrapper"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      aria-label="Interactive customer feedback and review flow preview"
-    >
-      {/* Realistic Mobile Device Container */}
-      <div className="phone-device">
-        {/* Dynamic Notch / Camera Island */}
-        <div className="phone-island">
-          <div className="phone-camera" />
-          <div className="phone-speaker" />
-        </div>
+    <div className={p.wrap} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <div className={p.stage} role="img" aria-label={DESCRIPTION}>
+        <div className={p.backdrop} />
 
-        {/* Status Bar */}
-        <div className="phone-status-bar">
-          <span className="status-time">9:41</span>
-          <div className="status-icons">
-            <svg width="12" height="10" viewBox="0 0 16 12" fill="currentColor">
-              <path d="M1 9h2v3H1V9zm4-3h2v6H5V6zm4-3h2v9H9V3zm4-3h2v12h-2V0z" />
-            </svg>
-            <svg width="12" height="10" viewBox="0 0 16 12" fill="currentColor">
-              <path d="M8 2.5C5.2 2.5 2.7 3.6.8 5.4l7.2 8.1 7.2-8.1C13.3 3.6 10.8 2.5 8 2.5z" />
-            </svg>
-            <div className="status-battery">
-              <div className="battery-level" />
+        <div className={p.phone}>
+          <div className={p.screen}>
+            <div className={p.statusBar}>
+              <span>9:41</span>
+              <span className={p.island} />
+              <span className={p.battery} />
             </div>
-          </div>
-        </div>
 
-        {/* Screen Content */}
-        <div className="phone-screen">
-          {stage < 3 ? (
-            <div className="screen-feedback-flow">
-              {/* Business Name Badge */}
-              <div className="biz-header">
-                <span className="biz-avatar">GH</span>
-                <div>
-                  <b className="biz-name">The Green House</b>
-                  <span className="biz-loc">Indiranagar · Salon &amp; Spa</span>
-                </div>
-              </div>
-
-              {/* Question */}
-              <div className="flow-q">How was your visit?</div>
-
-              {/* Star Rating Interactive Display */}
-              <div className="flow-stars" role="group" aria-label="Rating">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    className={`star-btn ${star <= rating ? 'active' : ''}`}
-                    onClick={() => handleStarClick(star)}
-                    aria-label={`${star} star`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-
-              {/* Dynamic Sentiment Chip */}
-              <div className="sentiment-pill">
-                {rating === 5 && '🌟 Excellent experience!'}
-                {rating === 4 && '😊 Very good visit!'}
-                {rating <= 3 && '💬 How can we improve?'}
-              </div>
-
-              {/* Tag Chips */}
-              <div className="flow-tags">
-                {['Friendly staff', 'Waiting time', 'Clean space', 'Value for money'].map((tag) => {
-                  const isSelected = activeTags.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      className={`flow-chip ${isSelected ? 'on' : ''}`}
-                      onClick={() => handleTagClick(tag)}
-                    >
-                      {isSelected ? '✓ ' : ''}{tag}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Typed Comment Preview */}
-              <div className="flow-comment-box">
-                <span className="comment-icon">“</span>
-                <span className="comment-text">
-                  {commentText || 'Add a quick note...'}
-                </span>
-              </div>
-
-              {/* CTA Send Button */}
-              <button
-                type="button"
-                className={`flow-submit-btn ${stage === 2 ? 'submitting' : ''}`}
-                onClick={() => setStage(3)}
-              >
-                {stage === 2 ? (
-                  <span className="btn-loading">
-                    <span className="spinner" /> Saving feedback...
+            {!sent ? (
+              <div key="form" className={p.view}>
+                <div className={p.biz}>
+                  <span className={p.avatar}>GH</span>
+                  <span className={p.bizText}>
+                    <strong>The Green House</strong>
+                    <span>Salon · Indiranagar</span>
                   </span>
-                ) : (
-                  <span>Send feedback →</span>
-                )}
-              </button>
-            </div>
-          ) : (
-            /* Stage 3: Immediate Google Review Transition Flow */
-            <div className="screen-success-flow">
-              <div className="success-icon-badge">✓</div>
-              <h4 className="success-title">Feedback Saved!</h4>
-              <p className="success-sub">
-                Your private feedback went directly to <b>The Green House</b>.
-              </p>
-
-              {/* Google Review Conversion Card */}
-              <div className="google-review-card">
-                <div className="g-card-header">
-                  <span className="g-logo">G</span>
-                  <div>
-                    <b>Share on Google too?</b>
-                    <div className="g-stars">★★★★★</div>
-                  </div>
+                  <span className={p.lang}>EN</span>
                 </div>
-                <p className="g-card-copy">
-                  Help other customers find us on Google Maps with your {rating}★ review.
-                </p>
-                <div className="g-action-btn">
-                  Write Google Review ↗
+
+                <p className={p.question}>How was your visit?</p>
+                <div className={p.stars}>
+                  {[0, 1, 2, 3, 4].map((i) => (
+                    <span
+                      key={i}
+                      className={p.star}
+                      data-on={shown >= 1 ? 'true' : undefined}
+                      style={{ transitionDelay: shown >= 1 ? `${i * 90}ms` : '0ms' }}
+                    >
+                      <Star />
+                    </span>
+                  ))}
+                </div>
+                <p className={p.starCaption}>{shown >= 1 ? 'Loved it' : 'Tap a star'}</p>
+
+                <p className={p.label}>What stood out?</p>
+                <div className={p.chips}>
+                  {TAGS.map((tag, i) => {
+                    const on = tag.on && shown >= 2;
+                    return (
+                      <span
+                        key={tag.label}
+                        className={p.chip}
+                        data-on={on ? 'true' : undefined}
+                        style={{ transitionDelay: on ? `${i * 160}ms` : '0ms' }}
+                      >
+                        {on && <Check />}
+                        {tag.label}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                <p className={p.label}>Anything else?</p>
+                <div className={p.note}>
+                  {shown >= 3 ? (
+                    <span key="typed" className={p.typed}>
+                      Rekha was lovely. Will book again.
+                    </span>
+                  ) : (
+                    <span className={p.placeholder}>Add a short note</span>
+                  )}
+                </div>
+
+                <div className={p.send} data-busy={shown === 4 ? 'true' : undefined}>
+                  {shown === 4 ? (
+                    <>
+                      <span className={p.dotSpinner} />
+                      Sending
+                    </>
+                  ) : (
+                    'Send feedback'
+                  )}
                 </div>
               </div>
+            ) : (
+              <div key="sent" className={`${p.view} ${p.sentView}`}>
+                <span className={p.sentIcon}>
+                  <Check />
+                </span>
+                <p className={p.sentTitle}>Sent to The Green House</p>
+                <p className={p.sentText}>Thank you. The team reads every note.</p>
 
-              <button
-                type="button"
-                className="btn-restart-demo"
-                onClick={() => setStage(0)}
-              >
-                ↺ Replay demo flow
-              </button>
-            </div>
-          )}
+                <div className={p.google}>
+                  <p className={p.googleTitle}>Share on Google too?</p>
+                  <p className={p.googleText}>Every customer sees this, whatever they rated.</p>
+                  <span className={p.googleBtn}>
+                    Write a Google review
+                    <ArrowUpRight />
+                  </span>
+                  <span className={p.later}>Maybe later</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-          {/* Home swipe bar */}
-          <div className="phone-home-indicator" />
+        <div className={p.radar}>
+          <div className={p.radarHead}>
+            <strong>Growth Radar</strong>
+            <span className={p.example}>Example</span>
+          </div>
+          <ul className={p.radarRows}>
+            <li data-tone="praise">
+              <span className={p.radarDot} />
+              <span>
+                <strong>Friendly, patient staff</strong>
+                <em>Praised often</em>
+              </span>
+            </li>
+            <li data-tone="attention">
+              <span className={p.radarDot} />
+              <span>
+                <strong>Weekend waiting time</strong>
+                <em>Worth a look</em>
+              </span>
+            </li>
+          </ul>
+          <p className={p.radarNew} data-on={sent ? 'true' : undefined}>
+            New note added to “Friendly staff”
+          </p>
         </div>
       </div>
 
-      {/* Floating Business Growth Radar Card */}
-      <div className={`float-radar ${radarPing ? 'radar-pulse' : ''}`}>
-        <div className="radar-head">
-          <div className="radar-title-wrap">
-            <span className="radar-sparkle">✦</span>
-            <h3>Business Growth Radar</h3>
-          </div>
-          <span className="radar-live-pill">
-            <span className="live-dot" /> {radarPing ? 'Live sync' : 'AI Active'}
-          </span>
-        </div>
-
-        <div className="radar-metric-rows">
-          <div className="radar-row positive">
-            <div className="radar-icon-wrap green">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </div>
-            <div className="radar-text">
-              <b>Staff behaviour is a strength</b>
-              <span>+44 customers praised the team</span>
-            </div>
-            <span className="trend-badge up">↑ 26%</span>
-          </div>
-
-          <div className="radar-row warning">
-            <div className="radar-icon-wrap orange">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-            </div>
-            <div className="radar-text">
-              <b>Waiting time needs attention</b>
-              <span>Mentioned in 21 reviews</span>
-            </div>
-            <span className="trend-badge attention">Fix</span>
-          </div>
-        </div>
-
-        {radarPing && (
-          <div className="radar-toast-banner">
-            <span>⚡ New feedback synced to owner radar!</span>
-          </div>
-        )}
-      </div>
+      {!reduce && (
+        <button
+          type="button"
+          className={`btn btn-ghost btn-sm ${p.pauseBtn}`}
+          aria-pressed={userPaused}
+          onClick={() => setUserPaused((v) => !v)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        >
+          {userPaused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+          Pause animation
+        </button>
+      )}
     </div>
   );
 }
-

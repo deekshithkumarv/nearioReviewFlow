@@ -12,7 +12,7 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-export const POST = handle(async ({ actor, body }) => {
+export const POST = handle(async ({ actor, body, req }) => {
   if (actor.role !== 'super_admin' && actor.role !== 'agency_user') {
     throw new ServiceError(403, 'You do not have access to this.');
   }
@@ -29,7 +29,15 @@ export const POST = handle(async ({ actor, body }) => {
   } catch {
     throw new ServiceError(400, 'Invalid invite link.');
   }
-  if (!['http:', 'https:'].includes(linkUrl.protocol) || !linkUrl.pathname.startsWith('/accept')) {
+  // Only links to this site's own invite page may be emailed, so this endpoint can't be used to send
+  // Neario-branded mail pointing somewhere else.
+  const ownHost = req.headers.get('x-forwarded-host') || req.headers.get('host') || new URL(req.url).host;
+  if (
+    !['http:', 'https:'].includes(linkUrl.protocol) ||
+    linkUrl.host !== ownHost ||
+    linkUrl.pathname !== '/accept' ||
+    !/^[A-Za-z0-9_-]{20,}$/.test(linkUrl.searchParams.get('token') || '')
+  ) {
     throw new ServiceError(400, 'Invalid invite link.');
   }
 

@@ -1,0 +1,451 @@
+/* Customer feedback page. Phone first: one column, big targets, calm surfaces. */
+
+/* Applied by layout.js: put the Noto scripts ahead of system fallbacks so Hindi and Kannada render well. */
+.fonts {
+  --font-body: var(--font-instrument), var(--font-deva), var(--font-kannada), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-deva), var(--font-kannada), var(--font-body);
+  font-family: var(--font-body);
+}
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--s-4) max(var(--gutter), env(safe-area-inset-left, 0px)) max(var(--s-8), env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+}
+@media (min-width: 640px) {
+  .page { padding-top: var(--s-10); }
+}
+
+/* Indic scripts: no negative tracking (it breaks conjuncts) and a little more line height. */
+.page:lang(hi) h1, .page:lang(kn) h1,
+.page:lang(hi) h2, .page:lang(kn) h2 {
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+/* ---- Top bar + business identity ---- */
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.langs {
+  /* The buttons show हिंदी / ಕನ್ನಡ. Using the phone's own fonts here stops the browser from downloading
+     ~200 kB of Noto web fonts for every English visitor; they load only after a language is picked. */
+  font-family: var(--font-instrument), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.langBtn {
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.langBtn:hover { color: var(--ink); }
+.langBtn[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--sh-1);
+}
+/* Keep the whole switch ≥44px tall for touch while the pills look lighter. */
+@media (pointer: coarse) {
+  .langBtn { min-height: 44px; }
+}
+
+.biz {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  min-width: 0;
+}
+.avatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-lg);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.02em;
+}
+.bizText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bizName {
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: var(--fs-xl);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.bizCity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.bizCity svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- Progress ---- */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.progressLabel {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.segments {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.segment {
+  position: relative;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.segmentFill {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--brand);
+  transform-origin: left center;
+}
+
+/* ---- Card + steps ---- */
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+  padding: var(--s-6) var(--s-5);
+}
+@media (min-width: 420px) {
+  .step { padding: var(--s-8) var(--s-6); }
+}
+.step h1 {
+  font-size: var(--fs-2xl);
+  line-height: 1.15;
+}
+.step h1:focus { outline: none; }
+.step h1:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; }
+
+/* ---- Stars ---- */
+.stars {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-1);
+}
+.star {
+  flex: 1;
+  max-width: 68px;
+  aspect-ratio: 1;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--line-strong);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.star:hover { background: var(--surface-2); }
+.star[data-on='true'] { color: var(--accent); }
+.starIcon {
+  display: grid;
+  place-items: center;
+  width: 78%;
+  height: 78%;
+}
+.starIcon svg { width: 100%; height: 100%; }
+
+.ratingWord {
+  min-height: 32px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 650;
+  font-size: var(--fs-lg);
+  color: var(--ink);
+}
+.ratingHint {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+/* ---- Step 2 ---- */
+.summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  align-self: flex-start;
+  padding: 6px var(--s-3);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.summaryStars {
+  display: inline-flex;
+  gap: 1px;
+  color: var(--accent);
+}
+.summaryStars svg { width: 14px; height: 14px; }
+
+.headGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.legend {
+  padding: 0;
+  margin-bottom: var(--s-3);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.chip:hover { background: var(--surface-2); }
+.chip:active { transform: scale(0.97); }
+.chip[aria-pressed='true'] {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-text);
+}
+.chip svg { width: 16px; height: 16px; flex-shrink: 0; margin-left: -4px; }
+
+.counter {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.consent {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.reveal {
+  overflow: hidden;
+}
+
+.privacyNote {
+  display: flex;
+  gap: var(--s-2);
+  align-items: flex-start;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.5;
+}
+.privacyNote svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; color: var(--brand-text); }
+
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--s-3);
+}
+.actions :global(.btn) { white-space: normal; text-align: center; line-height: 1.2; }
+
+/* ---- Step 3: thanks ---- */
+.done {
+  align-items: center;
+  text-align: center;
+}
+.check {
+  width: 76px;
+  height: 76px;
+  color: var(--success);
+}
+.check svg { width: 100%; height: 100%; overflow: visible; }
+.doneText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.doneText p { color: var(--muted); }
+
+.quote {
+  width: 100%;
+  margin: 0;
+  padding: var(--s-4);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  text-align: left;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.google {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  text-align: left;
+}
+.google h2 {
+  font-size: var(--fs-md);
+}
+.google p {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.googleBtns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.googleBtns :global(.btn) { white-space: normal; text-align: center; line-height: 1.25; }
+
+/* ---- Footer ---- */
+.foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  line-height: 1.5;
+  padding: 0 var(--s-2);
+}
+.foot a { color: var(--ink-2); font-weight: 600; }
+.powered {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- Loading / problem states ---- */
+.skelHead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.skelStars {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.skelStars span { flex: 1; max-width: 60px; aspect-ratio: 1; border-radius: var(--r-md); }
+
+.problem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-10) var(--s-6);
+  text-align: center;
+}
+.problem h1 { font-size: var(--fs-xl); }
+.problem p { color: var(--muted); max-width: 36ch; }
+.problemIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: var(--s-2);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.problemIcon svg { width: 24px; height: 24px; }
+.problem :global(.btn) { margin-top: var(--s-3); }
+
+.header,
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.main { gap: var(--s-5); }

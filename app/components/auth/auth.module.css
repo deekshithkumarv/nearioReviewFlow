@@ -1,0 +1,286 @@
+/* Shared split layout for /login and /accept. */
+.shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  background: var(--paper);
+}
+
+/* ---- Brand panel (wide screens only) ---- */
+.brand {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .shell {
+    grid-template-columns: minmax(380px, 0.9fr) minmax(0, 1.1fr);
+  }
+  .brand {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--s-10);
+    padding: var(--s-10) clamp(32px, 4vw, 64px);
+    background: var(--band);
+    color: var(--band-ink);
+    overflow: hidden;
+  }
+}
+
+.brandBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-8);
+  max-width: 440px;
+}
+
+.brandLine {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.points li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: var(--s-3);
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--band-muted);
+  padding-top: var(--s-4);
+  border-top: 1px solid color-mix(in srgb, var(--band-ink) 14%, transparent);
+}
+.pointNum {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  padding-top: 2px;
+}
+
+.sample {
+  position: relative;
+  margin: 0;
+  max-width: 300px;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--band-ink) 16%, transparent);
+  background: color-mix(in srgb, var(--band-ink) 5%, transparent);
+}
+.sampleTag {
+  position: absolute;
+  top: var(--s-3);
+  right: var(--s-3);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--band-muted);
+}
+.sampleQ {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  margin-bottom: var(--s-3);
+}
+.sampleStars {
+  display: flex;
+  gap: 6px;
+}
+.sampleCap {
+  margin-top: var(--s-3);
+  font-size: var(--fs-xs);
+  color: var(--band-muted);
+}
+
+/* ---- Form side ---- */
+.side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--gutter);
+}
+@media (min-width: 960px) {
+  .top { justify-content: flex-end; padding: var(--s-6) var(--s-10); }
+  .mobileLogo { display: none; }
+}
+.topLinks { display: flex; gap: var(--s-2); margin-left: auto; }
+
+.main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--s-6) var(--gutter) var(--s-12);
+}
+@media (min-width: 640px) {
+  .main { align-items: center; padding-top: var(--s-8); }
+}
+
+.panel {
+  width: 100%;
+  max-width: 420px;
+}
+
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  justify-content: center;
+  padding: var(--s-5) var(--gutter) max(var(--s-5), env(safe-area-inset-bottom, 0px));
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.foot a { color: inherit; }
+
+/* ---- Pieces used inside the panel by the pages ---- */
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-bottom: var(--s-8);
+}
+.head h1 {
+  font-size: var(--fs-3xl);
+  line-height: 1.1;
+}
+.head p {
+  color: var(--muted);
+  font-size: var(--fs-base);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.pwWrap {
+  position: relative;
+}
+.pwWrap :global(.input) {
+  padding-right: 52px;
+}
+.pwToggle {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  bottom: 1px;
+  width: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: transparent;
+  color: var(--muted);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+.pwToggle:hover { color: var(--ink); background: var(--surface-2); }
+.pwToggle svg { width: 18px; height: 18px; }
+
+.submit {
+  margin-top: var(--s-1);
+}
+
+.detected {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--brand-soft);
+  color: var(--brand-text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+.detected svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.detected b { display: block; color: var(--ink); font-weight: 600; }
+.detected span { color: var(--ink-2); }
+
+.rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--fs-sm);
+}
+.rules li {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--muted);
+  transition: color var(--dur) var(--ease-out);
+}
+.rules li[data-ok='true'] { color: var(--success); }
+.ruleIcon {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex-shrink: 0;
+}
+.rules li[data-ok='true'] .ruleIcon { background: var(--success); border-color: var(--success); color: var(--surface); }
+.ruleIcon svg { width: 12px; height: 12px; }
+
+.after {
+  margin-top: var(--s-8);
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.after a { color: var(--brand-text); font-weight: 600; }
+.demoLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  text-decoration: none;
+}
+.demoLink:hover { text-decoration: underline; }
+.demoLink svg { width: 16px; height: 16px; transition: transform var(--dur-fast) var(--ease-out); }
+.demoLink:hover svg { transform: translateX(2px); }
+
+.skel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}

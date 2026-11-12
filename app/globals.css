@@ -460,8 +460,11 @@ hr { border: 0; border-top: 1px solid var(--line); margin: var(--s-8) 0; }
 /* ---------- 11. Cookie notice ---------- */
 .cookie-note {
   position: fixed; z-index: 900;
-  left: var(--gutter); bottom: max(var(--gutter), env(safe-area-inset-bottom, 0px));
-  max-width: 420px;
+  /* Centred along the bottom edge. margin:auto (not a transform) keeps the slide-in animation intact. */
+  left: var(--gutter); right: var(--gutter); bottom: max(var(--gutter), env(safe-area-inset-bottom, 0px));
+  width: fit-content;
+  max-width: min(560px, calc(100% - 2 * var(--gutter)));
+  margin-inline: auto;
   display: flex; align-items: center; gap: var(--s-4);
   padding: var(--s-3) var(--s-3) var(--s-3) var(--s-4);
   background: var(--surface);
@@ -474,12 +477,14 @@ hr { border: 0; border-top: 1px solid var(--line); margin: var(--s-8) 0; }
 .cookie-note p { color: var(--ink-2); }
 .cookie-note a { color: var(--brand-text); font-weight: 600; }
 .cookie-note-btn {
-  flex-shrink: 0; min-height: 36px; padding: 0 var(--s-4);
+  flex-shrink: 0; min-height: 40px; padding: 0 var(--s-4);
   border: 0; border-radius: var(--r-sm);
   background: var(--ink); color: var(--paper);
   font-weight: 600; font-size: var(--fs-sm);
 }
-@media (max-width: 480px) { .cookie-note { right: var(--gutter); } }
+@media (max-width: 480px) {
+  .cookie-note { width: auto; }
+}
 
 /* ---------- 12. Scroll reveal (see components/ui/Reveal.js) ---------- */
 [data-reveal-root='single'][data-reveal='pending'],
